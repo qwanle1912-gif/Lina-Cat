@@ -538,25 +538,25 @@
                 <div class="w-[2px] h-9 bg-slate-300 mx-0.5 sm:mx-1 shrink-0"></div>
 
                 <!-- 5. Bày trí -->
-                <button onclick="enterDecorEditMode()" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Kéo thả sắp xếp đồ phòng">
+                <button onclick="openModal('decor-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Bày trí & quản lý nội thất phòng">
                     <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">🪑</div>
                     <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Bày trí</span>
                 </button>
 
                 <!-- 6. Đàn mèo -->
-                <button onclick="openModal('cat-selection-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Danh sách các bé mèo">
+                <button onclick="openModal('breed-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Danh sách các bé mèo">
                     <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-200 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">😸</div>
                     <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Đàn mèo</span>
                 </button>
 
                 <!-- 7. Ghép đôi -->
-                <button onclick="openCoupleModal()" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Giao lưu & sinh mèo con">
+                <button onclick="openModal('couple-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Giao lưu & sinh mèo con">
                     <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-pink-200 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">💖</div>
                     <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Ghép đôi</span>
                 </button>
 
-                <!-- 8. Kho đồ -->
-                <button onclick="openDecorShopModal()" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Cửa hàng sắm đồ cho mèo">
+                <!-- 8. Kho đồ / Cửa hàng -->
+                <button onclick="openModal('shop-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Cửa hàng & kho sắm đồ cho mèo">
                     <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">📦</div>
                     <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Kho đồ</span>
                 </button>
@@ -2754,11 +2754,20 @@
                         root.traverse(child => {
                 child.userData.catId = catData.id;
             });
+            // RANDOM HỆ SỐ CÁ TÍNH RIÊNG BIỆT CHO TỪNG BÉ MÈO
+            const pottyFactor = 0.85 + Math.random() * 0.3; // Hệ số đi vệ sinh (30-50p)
+            const hungerFactor = 0.88 + Math.random() * 0.24; // Hệ số tiêu hóa (5-7p giảm 13%)
+            const playfulness = 0.75 + Math.random() * 0.5; // Mức độ thích tự đi chơi
+            const favoriteToys = ['wheel', 'tree', 'box', 'donut'];
+            const favToy = favoriteToys[Math.floor(Math.random() * favoriteToys.length)];
+            const walkSpeed = 0.38 + Math.random() * 0.16;
+            const pottyTimer = (1800 + Math.random() * 1200) * pottyFactor; // 30 - 50 phút
+            const playTimer = 60 + Math.random() * 150; // Tự đi chơi độc lập sau 1 - 3.5 phút
             return {
                 id: catData.id, data: catData, breed, mesh: root, bodyPivot, headGroup, accessoryGroup, eyes, ears, legs, tailSegments,
                 aiState: 'wander', stateTimer: 2 + Math.random() * 4, moving: false, seed: Math.random() * 10,
                 targetPos: new THREE.Vector3((Math.random() - 0.5) * 6, FLOOR_Y + 0.03, -0.4 + Math.random() * 2.5),
-                walkPhase: Math.random() * 10, blinkTimer: 1 + Math.random() * 3, climbStep: 0, climbTimer: 0
+                walkPhase: Math.random() * 10, blinkTimer: 1 + Math.random() * 3, climbStep: 0, climbTimer: 0, pottyFactor, hungerFactor, playfulness, favToy, walkSpeed, pottyTimer, playTimer
             };
         }
 
@@ -3003,18 +3012,20 @@
                     return;
                 }
 
-                // 2B. NATURAL CAT POTTY ROUTINE (ĐI VỆ SINH ĐÚNG CHẬU CÁT ĐỊNH KỲ)
+                // 2B. NATURAL CAT POTTY ROUTINE (30 - 50 PHÚT ĐI 1 LẦN, CÓ HỆ SỐ NGẪU NHIÊN RIÊNG)
                 const litterPos = state.decorPositions['litter_box'] || DEFAULT_DECOR_POSITIONS.litter_box;
-                if (!actor.pottyTimer) actor.pottyTimer = 140 + Math.random() * 100;
+                if (!actor.pottyFactor) actor.pottyFactor = 0.85 + Math.random() * 0.3;
+                if (!actor.pottyTimer) actor.pottyTimer = (1800 + Math.random() * 1200) * actor.pottyFactor;
                 actor.pottyTimer -= effDt;
 
-                // When timer triggers, immediately set state and reset timer so it NEVER loops in a 60fps cycle!
+                // Chu kỳ 30 - 50 phút đi vệ sinh vào chậu cát
                 if (actor.pottyTimer <= 0 && state.activeDecor.includes('litter_box') && 
                     actor.aiState !== 'using_litter' && actor.aiState !== 'going_to_litter' && 
                     actor.aiState !== 'jumping' && actor.aiState !== 'running_wheel' && 
                     actor.aiState !== 'climbing') {
                     actor.aiState = 'going_to_litter';
-                    actor.pottyTimer = 180 + Math.random() * 120; // Reset timer IMMEDIATELY!
+                    // Đặt lại ngay hẹn giờ 30 - 50 phút (1800 - 3000 giây)
+                    actor.pottyTimer = (1800 + Math.random() * 1200) * actor.pottyFactor;
                 }
 
                 if (actor.aiState === 'going_to_litter') {
@@ -3028,7 +3039,6 @@
                         actor.mesh.rotation.y = Math.atan2(dx, dz);
                     } else {
                         actor.moving = false;
-                        // Jump cleanly into litter box once
                         triggerCatJump(actor, new THREE.Vector3(litterPos.x, FLOOR_Y + 0.16, litterPos.z - 0.05), 0.35, 0.5, 'using_litter', 6.0);
                         playSandSound();
                     }
@@ -3038,20 +3048,18 @@
                 if (actor.aiState === 'using_litter') {
                     actor.moving = false;
                     actor.stateTimer -= effDt;
-                    // First 1.5s: scratch sand, Next 3s: squat potty, Last 1.5s: cover sand
                     if (actor.stateTimer > 4.5 || actor.stateTimer < 1.5) {
-                        // Paw scratch animation
                         if (actor.legs && actor.legs.length >= 2) {
                             actor.legs[0].rotation.x = Math.sin(Date.now() * 0.015) * 0.6;
                             actor.legs[1].rotation.x = -Math.sin(Date.now() * 0.015) * 0.6;
                         }
                     }
                     if (actor.stateTimer <= 0) {
-                        // Done using litter!
                         state.litterCleanliness = Math.max(15, (state.litterCleanliness || 100) - 35);
                         if (litterBoxDirtGroup) litterBoxDirtGroup.visible = true;
                         triggerCatJump(actor, new THREE.Vector3(litterPos.x, FLOOR_Y + 0.03, litterPos.z + 0.65), 0.35, 0.5, 'sit', 3.5);
-                        actor.pottyTimer = 180 + Math.random() * 120; // Next potty in 3-5 mins
+                        // Hẹn giờ chu kỳ đi vệ sinh kế tiếp: 30 - 50 phút
+                        actor.pottyTimer = (1800 + Math.random() * 1200) * actor.pottyFactor;
                         showFloatingNotification(`💩 ${actor.data.name} đã đi vệ sinh đúng chậu cát xong! Hãy bấm Dọn Cát nhé 🧹`, '#06b6d4', '✨');
                         updateUI();
                         pushStateToCloud();
@@ -3085,36 +3093,74 @@
                     return;
                 }
 
-                // 4. AUTONOMOUS BEHAVIOR CYCLE (Cats ONLY play with toys when BORED >= 55!)
-                if (actor.stateTimer <= 0) {
-                    const cData = state.cats.find(c => c.id === actor.id);
-                    const isBored = cData && (cData.boredom >= 55);
+                // 4. AUTONOMOUS BEHAVIOR CYCLE: TỰ CÓ THỜI GIAN RIÊNG ĐI CHƠI (KHÔNG CẦN CHỜ BUỒN CHÁN > 55%)
+                if (!actor.playTimer) actor.playTimer = 60 + Math.random() * 180;
+                actor.playTimer -= effDt;
 
-                    if (isBored) {
-                        // Cat is bored -> autonomously seek out toys to relieve boredom!
-                        const rToy = Math.random();
-                        if (rToy < 0.45 && state.activeDecor.includes('cat_wheel')) {
+                // TỰ ĐỘNG ĐI CHƠI THEO LỊCH SINH HOẠT VÀ TÍNH CÁCH RIÊNG CỦA TỪNG BÉ
+                if (actor.playTimer <= 0 && actor.aiState !== 'climbing' && actor.aiState !== 'running_wheel' && actor.aiState !== 'going_to_litter' && actor.aiState !== 'using_litter') {
+                    // Reset thời gian đi chơi kế tiếp: 2 - 5 phút (ngẫu nhiên theo hệ số tính cách playfulness)
+                    actor.playTimer = (120 + Math.random() * 240) / (actor.playfulness || 1.0);
+
+                    const cData = state.cats.find(c => c.id === actor.id);
+                    const hasWheel = state.activeDecor.includes('cat_wheel');
+                    const hasTree = state.activeDecor.includes('cat_tree') && (!actor.lastClimbTime || (Date.now() - actor.lastClimbTime > 180000));
+                    const hasBox = state.activeDecor.includes('cardboard_box');
+                    const hasDonut = state.activeDecor.includes('donut_bed');
+
+                    // Chọn trò chơi ngẫu nhiên kết hợp sở thích riêng của từng bé
+                    const availableToys = [];
+                    if (hasWheel) availableToys.push('wheel');
+                    if (hasTree) availableToys.push('tree');
+                    if (hasBox) availableToys.push('box');
+                    if (hasDonut) availableToys.push('donut');
+                    availableToys.push('flip'); // Nhào lộn xiếc
+
+                    if (availableToys.length > 0) {
+                        const pick = (actor.favToy && availableToys.includes(actor.favToy) && Math.random() < 0.5) 
+                            ? actor.favToy 
+                            : availableToys[Math.floor(Math.random() * availableToys.length)];
+
+                        if (pick === 'wheel') {
+                            selectedCatId = actor.id;
                             commandCatEmote('wheel');
-                            if (cData) { cData.boredom = Math.max(0, cData.boredom - 45); cData.love = Math.min(100, (cData.love || 80) + 4); }
-                            showFloatingNotification(`✨ ${actor.data.name} thấy buồn chán nên đã chạy vào bánh xe tập thể dục!`, '#06b6d4', '🏃');
+                            if (cData) { cData.boredom = Math.max(0, (cData.boredom || 20) - 30); cData.love = Math.min(100, (cData.love || 80) + 3); }
+                            showFloatingNotification(`✨ ${actor.data.name} tự giác chạy vào bánh xe tập thể dục tít mù! 🏃`, '#06b6d4', '⚡');
                             return;
-                        } else if (rToy < 0.85 && state.activeDecor.includes('cat_tree') && (!actor.lastClimbTime || (Date.now() - actor.lastClimbTime > 240000))) {
+                        } else if (pick === 'tree') {
+                            selectedCatId = actor.id;
                             commandCatEmote('tree');
-                            if (cData) { cData.boredom = Math.max(0, cData.boredom - 40); cData.love = Math.min(100, (cData.love || 80) + 4); }
-                            showFloatingNotification(`🌳 ${actor.data.name} chán chường nên đi leo tháp mèo giải khuây!`, '#8b5cf6', '🐾');
+                            if (cData) { cData.boredom = Math.max(0, (cData.boredom || 20) - 35); cData.love = Math.min(100, (cData.love || 80) + 4); }
+                            showFloatingNotification(`🌳 ${actor.data.name} tung tăng leo tháp mèo ngắm cảnh! 🐾`, '#8b5cf6', '🐱');
                             return;
-                        } else if (state.activeDecor.includes('cardboard_box')) {
+                        } else if (pick === 'box') {
+                            selectedCatId = actor.id;
                             commandCatEmote('box');
-                            if (cData) cData.boredom = Math.max(0, cData.boredom - 35);
+                            if (cData) cData.boredom = Math.max(0, (cData.boredom || 20) - 25);
+                            showFloatingNotification(`📦 ${actor.data.name} chui tọt vào hộp carton ấm cúng! 💕`, '#f59e0b', '🐱');
+                            return;
+                        } else if (pick === 'donut') {
+                            const donutPos = state.decorPositions['donut_bed'] || DEFAULT_DECOR_POSITIONS.donut_bed;
+                            actor.mesh.position.set(donutPos.x, FLOOR_Y + 0.08, donutPos.z);
+                            actor.aiState = 'loaf';
+                            actor.stateTimer = 16 + Math.random() * 14;
+                            if (cData) cData.boredom = Math.max(0, (cData.boredom || 20) - 20);
+                            showFloatingNotification(`🍩 ${actor.data.name} cuộn tròn êm ái trên đệm donut! 💤`, '#ec4899', '✨');
+                            return;
+                        } else if (pick === 'flip') {
+                            selectedCatId = actor.id;
+                            commandCatEmote('flip');
                             return;
                         }
                     }
+                }
 
-                    // Not bored: peaceful natural feline routine (wander, loaf, sit, sleep, lie on back)
+                // Sinh hoạt thường nhật tự nhiên (Đi dạo, ngồi ngắm cảnh, nằm phơi bụng, ngủ)
+                if (actor.stateTimer <= 0) {
                     const r = Math.random();
-                    actor.aiState = r < 0.45 ? 'wander' : (r < 0.68 ? 'sit' : (r < 0.82 ? 'lie' : (r < 0.92 ? 'back' : 'loaf')));
-                    actor.stateTimer = actor.aiState === 'wander' ? 4 + Math.random() * 4 : 8 + Math.random() * 9;
-                    actor.targetPos.set((Math.random() - 0.5) * 6, FLOOR_Y + 0.03, -0.4 + Math.random() * 2.5);
+                    actor.aiState = r < 0.40 ? 'wander' : (r < 0.65 ? 'sit' : (r < 0.80 ? 'lie' : (r < 0.92 ? 'back' : 'loaf')));
+                    actor.stateTimer = actor.aiState === 'wander' ? 4 + Math.random() * 5 : 9 + Math.random() * 12;
+                    actor.targetPos.set((Math.random() - 0.5) * 6.5, FLOOR_Y + 0.03, -0.4 + Math.random() * 2.6);
                 }
 
                 actor.moving = false;
@@ -3123,10 +3169,11 @@
                     const dx = actor.targetPos.x - pos.x;
                     const dz = actor.targetPos.z - pos.z;
                     const dist = Math.hypot(dx, dz);
+                    const speed = actor.walkSpeed || 0.45;
                     if (dist > 0.15) {
                         actor.moving = true;
-                        pos.x += (dx / dist) * 0.45 * effDt;
-                        pos.z += (dz / dist) * 0.45 * effDt;
+                        pos.x += (dx / dist) * speed * effDt;
+                        pos.z += (dz / dist) * speed * effDt;
                         const ty = Math.atan2(dx, dz);
                         let d = ty - actor.mesh.rotation.y;
                         d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -3169,11 +3216,16 @@
                     addCatGrowthExp(cat, expGain, 'Thời gian thực', true);
                 }
 
-                // Hunger decay: ~1% every 120s
-                cat.hunger = Math.max(10, (cat.hunger || 70) - (elapsedSeconds / 120));
+                // GIẢM 13% ĐÓI MỖI 5 - 7 PHÚT (RANDOM HỆ SỐ TIÊU HÓA RIÊNG CHO TỪNG BÉ)
+                // 5 phút = 300s, 7 phút = 420s -> Giảm 13% sau 300s - 420s (tương đương 0.031% - 0.043% mỗi giây)
+                if (!cat.hungerRate) {
+                    const cycleSeconds = 300 + Math.random() * 120; // 5 - 7 phút
+                    cat.hungerRate = 13 / cycleSeconds; // % giảm mỗi giây
+                }
+                cat.hunger = Math.max(5, (cat.hunger || 70) - (elapsedSeconds * cat.hungerRate));
 
-                // Boredom growth: climbs +1% every 25s if inactive (relieved by playing with toys/laser/petting)
-                cat.boredom = Math.min(100, (cat.boredom !== undefined ? cat.boredom : 20) + (elapsedSeconds / 25));
+                // Boredom growth tự nhiên
+                cat.boredom = Math.min(100, Math.max(0, (cat.boredom !== undefined ? cat.boredom : 15) + (elapsedSeconds * 0.02)));
             });
 
             state.cleanliness = Math.max(10, (state.cleanliness || 100) - (elapsedSeconds / 220));
@@ -3993,12 +4045,69 @@
             }
         }
 
+        function openDecorModal() { openModal('decor-modal'); }
+        function openCatRosterModal() { openModal('breed-modal'); }
+        function openCoupleModal() { openModal('couple-modal'); }
+        function openDecorShopModal() { openModal('shop-modal'); }
+        function openInventoryModal() { openModal('inventory-modal'); }
+
+        function renderInventory() {
+            const list = document.getElementById('inventory-list');
+            if (!list) return;
+            list.innerHTML = '';
+            list.innerHTML += `
+                <div class="cozy-card p-2 flex justify-between items-center bg-amber-50">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🥫</span>
+                        <div>
+                            <div class="font-black text-xs">Thức ăn hạt dự trữ</div>
+                            <div class="text-[10px] text-slate-500">Dùng để đổ đầy máy ăn cho mèo</div>
+                        </div>
+                    </div>
+                    <span class="font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">${state.foodStock || 10} hộp</span>
+                </div>
+                <div class="cozy-card p-2 flex justify-between items-center bg-cyan-50">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🧹</span>
+                        <div>
+                            <div class="font-black text-xs">Độ sạch chậu cát</div>
+                            <div class="text-[10px] text-slate-500">Cát vệ sinh tự nhiên kháng khuẩn</div>
+                        </div>
+                    </div>
+                    <span class="font-black text-cyan-700 bg-cyan-100 px-2 py-0.5 rounded-full">${Math.round(state.litterCleanliness || 100)}%</span>
+                </div>
+            `;
+            DECOR_CATALOG.forEach(dec => {
+                if (state.ownedDecor && state.ownedDecor.includes(dec.id)) {
+                    const isActive = state.activeDecor && state.activeDecor.includes(dec.id);
+                    list.innerHTML += `
+                        <div class="cozy-card p-2 flex justify-between items-center bg-white">
+                            <div>
+                                <div class="font-black text-xs">${dec.name}</div>
+                                <div class="text-[10px] text-slate-500">${dec.desc}</div>
+                            </div>
+                            <span class="text-[10px] font-black px-2 py-0.5 rounded ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
+                                ${isActive ? 'Đang bày' : 'Đang cất'}
+                            </span>
+                        </div>
+                    `;
+                }
+            });
+        }
+
         function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
+            if (id === 'cat-selection-modal') id = 'breed-modal';
+            const el = document.getElementById(id);
+            if (!el) {
+                console.warn('Modal not found:', id);
+                return;
+            }
+            el.classList.remove('hidden');
             if (id === 'shop-modal') renderShop('cats');
             if (id === 'breed-modal') renderCatsRoster();
             if (id === 'decor-modal') renderDecorList();
             if (id === 'couple-modal') initCoupleSelects();
+            if (id === 'inventory-modal') renderInventory();
         }
 
         function closeModal(id) {
