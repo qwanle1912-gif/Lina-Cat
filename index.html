@@ -4280,16 +4280,15 @@
         }
 
         window.onload = function () {
-            startLiveCloudListener();
             loadGameState();
             checkUserLogin();
             applySidePanelStates();
             initThreeScene();
             updateRealTimeAndWeather();
             setInterval(updateRealTimeAndWeather, 15000);
-            setInterval(broadcastPresenceHeartbeat, 6000); broadcastPresenceHeartbeat();
-            setInterval(() => syncWithCloud(false), 20000); // Background sync between Lina & Qwan
             updateUI();
+            syncWithCloud(true);
+            broadcastPresenceHeartbeat();
             requestAnimationFrame(animateLoop);
         };
     </script>
