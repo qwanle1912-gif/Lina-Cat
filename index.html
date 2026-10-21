@@ -654,6 +654,24 @@
                 <input type="checkbox" id="chk-auto-meow" checked onchange="saveGameState()" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
             </div>
 
+            <!-- Discord Cloud Sync Config -->
+            <div class="bg-indigo-50 p-3 rounded-2xl border-2 border-indigo-200 text-xs font-bold text-slate-700 space-y-2">
+                <div class="font-black text-indigo-900 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5"><span class="text-base">💬</span><span>Đồng Bộ Discord Cloud</span></span>
+                    <span class="text-[10px] text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-black">Webhook Đang Bật</span>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] text-slate-600 block">Mã Discord Bot Token (Lưu trong máy, không bị quét thu hồi):</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="input-discord-bot-token" placeholder="Dán Bot Token mới vào đây..." class="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-indigo-500 font-mono bg-white">
+                        <button onclick="saveDiscordBotToken()" class="cozy-btn px-3 py-1.5 bg-indigo-500 text-white font-black text-xs shrink-0 shadow-sm">Lưu</button>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-500 leading-tight">
+                    💡 Webhook tự động cập nhật phòng lên Discord mỗi 5s. Nhập Bot Token mới để đọc dữ liệu đồng bộ giữa các máy!
+                </p>
+            </div>
+
             <!-- Save & GitHub Persistence Info -->
             <div class="bg-indigo-50 p-3 rounded-2xl border-2 border-indigo-200 text-xs font-bold text-slate-600 space-y-1">
                 <div class="font-black text-indigo-900 flex items-center gap-1.5">
@@ -1438,7 +1456,25 @@
 
         // CLOUD SERVER SYNC SYSTEM (DISCORD WEBHOOK & BOT API + LOCAL BROADCASTCHANNEL)
         const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1562594552181686375/Yy97zDxXX4qajvg4OMPK7CUU4UhHVU9txYcC5mOO1pmci43ZpuNRPikAOnqEmiWrOAPp';
-        const DISCORD_BOT_TOKEN = 'MTQ4MzI4NDM5NDU0MTMyMjI3MQ.GoZsp3.jxu32wGSifPcynd42VTp8Gq8YwOeTJ0h-oGbF0';
+        // Bot Token được lưu an toàn trong trình duyệt (localStorage), không để lộ công khai lên GitHub để tránh bị Discord Safety Jim quét thu hồi
+        function getDiscordBotToken() {
+            return localStorage.getItem('meowlator_discord_bot_token') || '';
+        }
+
+        function saveDiscordBotToken() {
+            const input = document.getElementById('input-discord-bot-token');
+            if (input) {
+                const val = input.value.trim();
+                if (val) {
+                    localStorage.setItem('meowlator_discord_bot_token', val);
+                    showFloatingNotification('Đã lưu Discord Bot Token an toàn! 💕', '#10b981', '🔑');
+                    syncWithCloud(true);
+                } else {
+                    localStorage.removeItem('meowlator_discord_bot_token');
+                    showFloatingNotification('Đã xóa Bot Token.', '#64748b', 'ℹ️');
+                }
+            }
+        }
         const DISCORD_CHANNEL_ID = '1562594535505399918';
         const REST_API_BACKUP = 'https://api.restful-api.dev/objects/ff808181a09d98f701a160811efa47e6';
 
@@ -1565,7 +1601,7 @@
             try {
                 const res = await fetch(`https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages?limit=3`, {
                     headers: {
-                        'Authorization': `Bot ${DISCORD_BOT_TOKEN}`
+                        'Authorization': `Bot ${getDiscordBotToken()}`
                     }
                 });
 
