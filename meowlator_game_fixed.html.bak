@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeowLator - Căn Phòng Mèo Của Vợ</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN for 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts: Nunito & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #fffbf5;
+            --border-dark: #271c19;
+            --card-bg: rgba(255, 255, 255, 0.92);
+        }
+        body {
+            font-family: 'Nunito', 'Inter', sans-serif;
+            background-color: #fcefe3;
+            color: var(--border-dark);
+            user-select: none;
+            overflow: hidden;
+        }
+        .cozy-card {
+            background-color: var(--bg-cream);
+            border: 3px solid var(--border-dark);
+            box-shadow: 4px 4px 0px var(--border-dark);
+            border-radius: 1.25rem;
+        }
+        .cozy-pill {
+            background-color: var(--bg-cream);
+            border: 2.5px solid var(--border-dark);
+            box-shadow: 0 3px 0 var(--border-dark);
+            border-radius: 9999px;
+        }
+        .cozy-btn {
+            border: 2.5px solid var(--border-dark);
+            box-shadow: 0 3px 0 var(--border-dark);
+            border-radius: 1rem;
+            transition: all 0.1s ease;
+            cursor: pointer;
+        }
+        .cozy-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 0 var(--border-dark);
+        }
+        .cozy-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--border-dark);
+        }
+        .stat-bar-track {
+            background-color: #e5e7eb;
+            border: 2px solid var(--border-dark);
+            border-radius: 9999px;
+            height: 12px;
+            overflow: hidden;
+        }
+        .stat-bar-fill {
+            background: linear-gradient(90deg, #34d399, #10b981);
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.4s ease;
+        }
+        .mini-bar-track {
+            background-color: #e5e7eb;
+            border: 1.5px solid var(--border-dark);
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .cozy-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .cozy-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .cozy-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        #laser-dot {
+            position: fixed;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 10%, #ff0044 50%, rgba(255,0,68,0) 100%);
+            box-shadow: 0 0 12px #ff0044, 0 0 24px #ff0044;
+            pointer-events: none;
+            z-index: 40;
+            display: none;
+            transform: translate(-50%, -50%);
+        }
+        .side-panel-wrapper {
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+        }
+        .left-collapsed {
+            transform: translateX(-115%);
+            opacity: 0;
+            pointer-events: none !important;
+        }
+        .right-collapsed {
+            transform: translateX(115%);
+            opacity: 0;
+            pointer-events: none !important;
+        }
+        .panel-toggle-tab {
+            background-color: var(--bg-cream);
+            border: 2.5px solid var(--border-dark);
+            box-shadow: 0 3px 0 var(--border-dark), 0 6px 14px rgba(0,0,0,0.2);
+            color: var(--border-dark);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+        }
+        .panel-toggle-tab:hover {
+            background-color: #fff3d1;
+            transform: scale(1.04);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between p-2 sm:p-3 relative select-none overflow-hidden">
+
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <!-- Laser Dot for Playing with Cats -->
+    <div id="laser-dot"></div>
+
+    <!-- FLOATING FLOATING NOTIFICATION FX CONTAINER -->
+    <div id="floating-fx-layer" class="absolute inset-0 pointer-events-none z-30 overflow-hidden"></div>
+
+    <!-- TOP BAR: TIME, LIGHT SWITCH, NIGHT MODE, GAME SPEED, COINS -->
+    <header class="relative z-20 w-full flex items-center justify-between gap-2 max-w-7xl mx-auto">
+        <!-- Time & Lamp Button -->
+        <div class="flex items-center gap-2">
+            <div class="cozy-pill px-3.5 py-1.5 flex items-center gap-2 text-xs sm:text-sm font-black">
+                <span id="time-icon" class="text-base">☀️</span>
+                <span id="time-text">10:30</span>
+                <span id="day-text" class="text-slate-500 font-bold text-xs">Ngày 1</span>
+            </div>
+            <button onclick="toggleLamp()" id="lamp-btn" class="cozy-btn px-3.5 py-1.5 text-xs sm:text-sm font-extrabold bg-amber-100 hover:bg-amber-200 flex items-center gap-1.5">
+                <span>💡</span><span id="lamp-text">Đèn bật (tay)</span>
+            </button>
+            <button onclick="toggleNightMode()" id="night-btn" class="cozy-btn p-2 text-sm bg-indigo-100 hover:bg-indigo-200" title="Chế độ Ngày/Đêm">
+                🌙
+            </button>
+        </div>
+
+        <!-- Time Speed Controls -->
+        <div class="hidden sm:flex items-center gap-1 bg-white/80 p-1 border-2 border-slate-900 rounded-xl shadow-sm">
+            <button onclick="setGameSpeed(0)" id="spd-0" class="px-2.5 py-1 text-xs font-black rounded-lg hover:bg-amber-100">⏸️</button>
+            <button onclick="setGameSpeed(1)" id="spd-1" class="px-2.5 py-1 text-xs font-black rounded-lg bg-amber-200">▶️</button>
+            <button onclick="setGameSpeed(3)" id="spd-3" class="px-2.5 py-1 text-xs font-black rounded-lg hover:bg-amber-100">⏩</button>
+        </div>
+
+        <!-- Coin Balance -->
+        <div class="cozy-pill px-4 py-1.5 flex items-center gap-2 text-sm sm:text-base font-black bg-amber-50">
+            <span class="text-amber-500 text-lg">🪙</span>
+            <span id="coin-count" class="text-amber-700 tracking-wide">1,470</span>
+        </div>
+    </header>
+
+    <!-- TOP-CENTER FLOATING GUEST ORDER BANNER -->
+    <div class="relative z-20 w-full flex justify-center -mt-1 pointer-events-none">
+        <div id="guest-banner" class="cozy-pill px-4 py-1.5 flex items-center gap-3 pointer-events-auto">
+            <span class="text-base">🐱</span>
+            <span id="guest-banner-text" class="text-xs font-extrabold">Đơn của Cô Ngọc • <span id="guest-cond-count" class="text-emerald-700">2/4 điều kiện</span></span>
+            <button onclick="openModal('orders-modal')" class="cozy-btn px-3 py-1 text-xs font-extrabold bg-amber-100 hover:bg-amber-200">
+                Xem đơn khách
+            </button>
+        </div>
+    </div>
+
+    <!-- MIDDLE AREA: LEFT STATUS CARD + CENTER CAT INSPECTOR + RIGHT QUEST CARD -->
+    <div class="relative z-20 flex-1 flex items-center justify-between gap-2 my-1 overflow-hidden pointer-events-none">
+
+        <!-- FLOATING REOPEN TAB FOR LEFT PANEL -->
+        <button id="left-reopen-tab" onclick="toggleSidePanel('left')" class="hidden panel-toggle-tab fixed left-0 top-1/2 -translate-y-1/2 z-30 rounded-r-2xl border-l-0 px-3 py-3 flex flex-col items-center gap-1.5 pointer-events-auto shadow-xl" title="Mở bảng Chỉ số phòng">
+            <span class="text-xl">🐾</span>
+            <span class="text-[11px] font-black [writing-mode:vertical-lr]">Chỉ số</span>
+            <span id="left-tab-score" class="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black">94★</span>
+            <span class="text-xs font-black text-slate-600 mt-0.5">▶</span>
+        </button>
+
+        <!-- LEFT PANEL: Room Status & Scoring -->
+        <div id="left-panel-card" class="side-panel-wrapper cozy-card w-60 sm:w-64 max-h-full flex flex-col p-3.5 pointer-events-auto overflow-y-auto cozy-scroll relative">
+            <div class="flex items-start justify-between border-b-2 border-slate-200 pb-2.5 gap-1">
+                <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-xl shrink-0">🐾</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1">
+                            <span id="room-name-display" onclick="renameRoomPrompt()" class="font-black text-sm cursor-pointer hover:underline truncate max-w-[100px]" title="Bấm để đổi tên phòng">Phòng Mèo Của Vợ</span>
+                            <button onclick="renameRoomPrompt()" class="text-[10px] text-slate-400 hover:text-slate-700 shrink-0">✏️</button>
+                        </div>
+                        <div id="room-sub-info" class="text-[11px] font-bold text-slate-500 truncate">160 lít • 4 bé mèo</div>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                    <button onclick="toggleSidePanel('left')" title="Thu gọn bảng trái" class="cozy-btn px-2 py-0.5 text-[10px] font-black bg-amber-100 hover:bg-amber-200 flex items-center gap-0.5">
+                        <span>◀</span><span>Ẩn</span>
+                    </button>
+                    <div id="star-rating" class="text-[11px] tracking-tighter text-amber-400 font-black">⭐⭐⭐⭐☆</div>
+                </div>
+            </div>
+
+            <!-- NHÌN BẰNG MẮT -->
+            <div class="mt-3">
+                <div class="text-[10px] font-black tracking-wider text-slate-400 uppercase mb-2">NHÌN BẰNG MẮT</div>
+                <div class="mb-2.5">
+                    <div class="flex justify-between items-center text-xs font-extrabold mb-1">
+                        <span class="flex items-center gap-1.5">🥫 No bụng</span>
+                        <span id="stat-hunger-val" class="text-emerald-600">▲12 95</span>
+                    </div>
+                    <div class="stat-bar-track"><div id="stat-hunger-bar" class="stat-bar-fill" style="width: 95%"></div></div>
+                </div>
+                <div class="mb-2.5">
+                    <div class="flex justify-between items-center text-xs font-extrabold mb-1">
+                        <span class="flex items-center gap-1.5">🐱 Mèo thư thái</span>
+                        <span id="stat-happy-val" class="text-emerald-600">▲8 88</span>
+                    </div>
+                    <div class="stat-bar-track"><div id="stat-happy-bar" class="stat-bar-fill" style="width: 88%"></div></div>
+                </div>
+                <div class="mb-2.5">
+                    <div class="flex justify-between items-center text-xs font-extrabold mb-1">
+                        <span class="flex items-center gap-1.5">🌿 Cây & Đồ chơi</span>
+                        <span id="stat-plant-val" class="text-emerald-600">▲5 80</span>
+                    </div>
+                    <div class="stat-bar-track"><div id="stat-plant-bar" class="stat-bar-fill" style="width: 80%"></div></div>
+                </div>
+                <div class="mb-1">
+                    <div class="flex justify-between items-center text-xs font-extrabold mb-1">
+                        <span class="flex items-center gap-1.5">✨ Sạch cát & Lông</span>
+                        <span id="stat-clean-val" class="text-emerald-600">▼2 92</span>
+                    </div>
+                    <div class="stat-bar-track"><div id="stat-clean-bar" class="stat-bar-fill" style="width: 92%"></div></div>
+                </div>
+            </div>
+
+            <!-- ĐIỂM PHÒNG -->
+            <div class="mt-3 pt-2.5 border-t-2 border-slate-200">
+                <div class="flex justify-between items-center mb-2">
+                    <span id="total-score-title" class="text-[10px] font-black text-slate-500 uppercase">ĐIỂM PHÒNG 86/100</span>
+                    <span id="daily-income-badge" class="text-[11px] font-black text-amber-600">≈ 95 🪙/NGÀY</span>
+                </div>
+                <div class="space-y-1.5 text-[11px] font-bold">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="w-16 text-slate-600">Sức khoẻ</span>
+                        <div class="flex-1 mini-bar-track"><div id="sub-health-bar" class="stat-bar-fill" style="width:90%"></div></div>
+                        <span id="sub-health-txt" class="w-9 text-right font-extrabold">27/30</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="w-16 text-slate-600">Cây & Đồ</span>
+                        <div class="flex-1 mini-bar-track"><div id="sub-plant-bar" class="stat-bar-fill" style="width:80%"></div></div>
+                        <span id="sub-plant-txt" class="w-9 text-right font-extrabold">16/20</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="w-16 text-slate-600">Đàn mèo</span>
+                        <div class="flex-1 mini-bar-track"><div id="sub-cat-bar" class="stat-bar-fill" style="width:85%"></div></div>
+                        <span id="sub-cat-txt" class="w-9 text-right font-extrabold">17/20</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="w-16 text-slate-600">Bày trí</span>
+                        <div class="flex-1 mini-bar-track"><div id="sub-decor-bar" class="stat-bar-fill" style="width:93%"></div></div>
+                        <span id="sub-decor-txt" class="w-9 text-right font-extrabold">14/15</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="w-16 text-slate-600">Trình bày</span>
+                        <div class="flex-1 mini-bar-track"><div id="sub-style-bar" class="stat-bar-fill" style="width:86%"></div></div>
+                        <span id="sub-style-txt" class="w-9 text-right font-extrabold">13/15</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER FLOATING CAT INSPECTOR -->
+        <div id="cat-inspector" class="hidden cozy-card p-3.5 w-68 pointer-events-auto self-end mb-2 mx-auto z-20">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                    <span id="insp-emoji" class="text-2xl">🐱</span>
+                    <div>
+                        <div class="flex items-center gap-1">
+                            <span id="insp-name" class="font-black text-sm">Miu Cam</span>
+                            <button onclick="renameSelectedCat()" class="text-xs text-slate-400 hover:text-slate-700" title="Đổi tên mèo">✏️</button>
+                        </div>
+                        <div id="insp-breed" class="text-[11px] font-bold text-slate-500">Mèo Cam Mướp</div>
+                    </div>
+                </div>
+                <button onclick="closeInspector()" class="text-xs font-black px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+            <div class="text-xs font-bold space-y-1 mb-2.5 bg-amber-50/80 p-2 rounded-xl border border-slate-300">
+                <div class="flex justify-between"><span>Trạng thái:</span><span id="insp-state" class="text-pink-600 font-extrabold">Đang dạo chơi</span></div>
+                <div class="flex justify-between"><span>No bụng:</span><span id="insp-hunger" class="text-emerald-600 font-extrabold">94%</span></div>
+                <div class="flex justify-between"><span>Phụ kiện:</span><span id="insp-hat" class="text-amber-600 font-extrabold">Chuông Vàng</span></div>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5">
+                <button onclick="petSelectedCat()" class="cozy-btn py-1.5 text-[11px] font-extrabold bg-pink-100 hover:bg-pink-200">👋 Vuốt ve</button>
+                <button onclick="feedSelectedCatTreat()" class="cozy-btn py-1.5 text-[11px] font-extrabold bg-amber-100 hover:bg-amber-200">🐟 Thưởng</button>
+                <button onclick="cycleSelectedCatAccessory()" class="cozy-btn py-1.5 text-[11px] font-extrabold bg-purple-100 hover:bg-purple-200">🎀 Đổi đồ</button>
+            </div>
+        </div>
+
+        <!-- FLOATING REOPEN TAB FOR RIGHT PANEL -->
+        <button id="right-reopen-tab" onclick="toggleSidePanel('right')" class="hidden panel-toggle-tab fixed right-0 top-1/2 -translate-y-1/2 z-30 rounded-l-2xl border-r-0 px-3 py-3 flex flex-col items-center gap-1.5 pointer-events-auto shadow-xl" title="Mở bảng Mục tiêu & Việc hôm nay">
+            <span class="text-xl relative">
+                ✨
+                <span id="right-tab-dot" class="hidden absolute -top-1 -right-1 w-3 h-3 rounded-full bg-rose-500 border border-white animate-ping"></span>
+            </span>
+            <span class="text-[11px] font-black">Mục tiêu</span>
+            <span class="text-xs font-black text-slate-600 mt-0.5">◀</span>
+        </button>
+
+        <!-- RIGHT PANEL: Objectives & Daily Checklist -->
+        <div id="right-panel-card" class="side-panel-wrapper cozy-card w-60 sm:w-64 max-h-full flex flex-col p-3.5 pointer-events-auto overflow-y-auto cozy-scroll relative">
+            <div class="flex items-center justify-between border-b-2 border-slate-200 pb-2.5 gap-1">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-lg shrink-0">✨</span>
+                    <div class="min-w-0">
+                        <div class="font-black text-sm">Mục tiêu</div>
+                        <div class="text-[11px] font-bold text-slate-500 truncate">Chương 1 • Con Sen Của Vợ</div>
+                    </div>
+                </div>
+                <button onclick="toggleSidePanel('right')" title="Thu gọn bảng phải" class="cozy-btn px-2 py-0.5 text-[10px] font-black bg-amber-100 hover:bg-amber-200 flex items-center gap-0.5 shrink-0">
+                    <span>Ẩn</span><span>▶</span>
+                </button>
+            </div>
+            <div class="mt-3 border-b-2 border-slate-200 pb-3">
+                <div id="main-quest-step" class="text-[10px] font-black text-slate-400 uppercase">NHIỆM VỤ 1/8</div>
+                <div id="main-quest-title" class="font-black text-sm mt-0.5">Nhà sưu tầm Boss</div>
+                <div id="main-quest-desc" class="text-xs font-bold text-slate-600 mt-0.5">Nuôi 5 bé mèo đáng yêu cùng lúc trong phòng</div>
+                <div class="flex items-center gap-2 mt-2">
+                    <div class="flex-1 stat-bar-track"><div id="main-quest-bar" class="stat-bar-fill" style="width: 60%"></div></div>
+                    <span id="main-quest-prog" class="text-xs font-black">3/5</span>
+                    <span id="main-quest-reward" class="text-xs font-black text-amber-600">🪙120</span>
+                </div>
+                <button id="claim-main-quest-btn" onclick="claimMainQuest()" class="hidden w-full mt-2 cozy-btn py-1.5 bg-emerald-400 text-white font-black text-xs">
+                    🎁 Nhận thưởng nhiệm vụ!
+                </button>
+            </div>
+            <div class="mt-3">
+                <div class="text-[10px] font-black text-slate-400 uppercase mb-2">VIỆC HÔM NAY</div>
+                <div id="daily-tasks-list" class="space-y-2.5 text-xs font-bold"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM DOCK NAVIGATION -->
+    <footer class="relative z-20 w-full max-w-7xl mx-auto grid grid-cols-3 gap-2 sm:gap-3">
+        <!-- Chăm Sóc Panel Button -->
+        <div class="cozy-card p-2 flex items-center justify-around gap-1">
+            <button onclick="actionFeed()" class="flex flex-col items-center gap-1 group relative" title="Cho mèo ăn">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">🥫</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Cho ăn</span>
+                <span id="badge-food" class="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full border-2 border-slate-900 flex items-center justify-center">19</span>
+            </button>
+            <button onclick="actionClean()" class="flex flex-col items-center gap-1 group relative" title="Dọn cát vệ sinh">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">🧹</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Dọn cát</span>
+            </button>
+            <button onclick="actionBrush()" class="flex flex-col items-center gap-1 group relative" title="Chải lông thư giãn">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-pink-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">🪮</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Chải lông</span>
+            </button>
+            <button onclick="toggleLaserPointer()" id="laser-action-btn" class="flex flex-col items-center gap-1 group relative" title="Bật đèn Laser chơi đùa">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-rose-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">🔴</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Đèn laser</span>
+            </button>
+        </div>
+
+        <!-- Phòng Panel Button -->
+        <div class="cozy-card p-2 flex items-center justify-around gap-1">
+            <button onclick="openModal('decor-modal')" class="flex flex-col items-center gap-1 group">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-violet-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">🪑</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Bày trí</span>
+            </button>
+            <button onclick="openModal('devices-modal')" class="flex flex-col items-center gap-1 group">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-teal-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">🤖</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Thiết bị</span>
+            </button>
+            <button onclick="openModal('breed-modal')" class="flex flex-col items-center gap-1 group">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">🐱</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Đàn mèo</span>
+            </button>
+            <button onclick="openModal('couple-modal')" class="flex flex-col items-center gap-1 group">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-pink-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">💕</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Ghép đôi</span>
+            </button>
+        </div>
+
+        <!-- Đồ Đạc & Cửa Hàng Button -->
+        <div class="cozy-card p-2 flex items-center justify-around gap-1">
+            <button onclick="openModal('inventory-modal')" class="flex flex-col items-center gap-1 group">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">📦</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Kho đồ</span>
+            </button>
+            <button onclick="openModal('shop-modal')" class="flex flex-col items-center gap-1 group">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">🛍️</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Cửa hàng</span>
+            </button>
+            <button onclick="openModal('orders-modal')" class="flex flex-col items-center gap-1 group">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-rose-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">📜</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Đơn khách</span>
+            </button>
+            <button onclick="openModal('camera-modal')" class="flex flex-col items-center gap-1 group">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-sky-100 border-2 border-slate-900 flex items-center justify-center text-lg group-hover:scale-110 shadow-sm">📸</div>
+                <span class="text-[10px] sm:text-xs font-extrabold">Chụp ảnh</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- MODAL OVERLAYS -->
+    <!-- 1. SHOP MODAL -->
+    <div id="shop-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-2xl max-h-[85vh] flex flex-col p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-2xl">🛍️</span><h3 class="font-black text-lg">Cửa Hàng Thú Cưng & Nội Thất</h3></div>
+                <button onclick="closeModal('shop-modal')" class="cozy-btn px-3 py-1 font-black bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+            <div id="shop-tabs" class="flex gap-2 mt-3 pb-2 border-b border-slate-200">
+                <button onclick="switchShopTab('cats')" id="shop-tab-cats" class="cozy-btn px-4 py-1.5 text-xs font-extrabold bg-amber-200">Mèo Cưng 🐱</button>
+                <button onclick="switchShopTab('decor')" id="shop-tab-decor" class="cozy-btn px-4 py-1.5 text-xs font-extrabold bg-slate-100">Đồ Trang Trí 🪑</button>
+                <button onclick="switchShopTab('food')" id="shop-tab-food" class="cozy-btn px-4 py-1.5 text-xs font-extrabold bg-slate-100">Thức Ăn 🥫</button>
+            </div>
+            <div id="shop-content-area" class="flex-1 overflow-y-auto cozy-scroll py-3 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        </div>
+    </div>
+
+    <!-- 2. CATS / ĐÀN MÈO MODAL -->
+    <div id="breed-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-xl max-h-[85vh] flex flex-col p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-2xl">🐱</span><h3 class="font-black text-lg">Đàn Mèo Trong Phòng Vợ</h3></div>
+                <button onclick="closeModal('breed-modal')" class="cozy-btn px-3 py-1 font-black bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+            <div id="cats-roster-list" class="flex-1 overflow-y-auto cozy-scroll py-3 space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- 3. DECOR / BÀY TRÍ MODAL -->
+    <div id="decor-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-lg max-h-[85vh] flex flex-col p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-2xl">🪑</span><h3 class="font-black text-lg">Bày Trí Đồ Vật & Cây Xanh</h3></div>
+                <button onclick="closeModal('decor-modal')" class="cozy-btn px-3 py-1 font-black bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+            <div id="decor-toggle-list" class="flex-1 overflow-y-auto cozy-scroll py-3 space-y-2.5"></div>
+        </div>
+    </div>
+
+    <!-- 4. COUPLE / GHÉP ĐÔI MODAL -->
+    <div id="couple-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-md flex flex-col p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-2xl">💕</span><h3 class="font-black text-lg">Phòng Ghép Đôi Mèo Cưng</h3></div>
+                <button onclick="closeModal('couple-modal')" class="cozy-btn px-3 py-1 font-black bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+            <div class="py-4 space-y-4">
+                <p class="text-xs font-bold text-slate-600">Chọn 2 bé mèo cưng trưởng thành để ghép đôi và chào đón bé mèo con siêu đáng yêu!</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-black uppercase text-slate-500">Mèo Bố (Bé 1)</label>
+                        <select id="couple-cat-1" class="w-full mt-1 p-2 cozy-pill text-xs font-bold bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-black uppercase text-slate-500">Mèo Mẹ (Bé 2)</label>
+                        <select id="couple-cat-2" class="w-full mt-1 p-2 cozy-pill text-xs font-bold bg-white"></select>
+                    </div>
+                </div>
+                <button onclick="executeBreeding()" class="w-full cozy-btn py-3 bg-pink-400 hover:bg-pink-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-sm">
+                    <span>💖 Bắt đầu ghép đôi (Tốn 100 🪙)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. ORDERS / ĐƠN KHÁCH MODAL -->
+    <div id="orders-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-md flex flex-col p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-2xl">📜</span><h3 class="font-black text-lg">Đơn Đặt Hàng Khách VIP</h3></div>
+                <button onclick="closeModal('orders-modal')" class="cozy-btn px-3 py-1 font-black bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+            <div class="py-4 space-y-3">
+                <div class="bg-amber-50 p-3.5 rounded-2xl border-2 border-slate-900 space-y-2">
+                    <div class="flex justify-between items-center"><span class="font-black text-sm">Khách: Cô Ngọc</span><span class="text-xs font-extrabold text-amber-600">Thưởng: 🪙 350</span></div>
+                    <p class="text-xs font-bold text-slate-600">Yêu cầu phòng: Đạt trên 85 điểm No bụng, 80 điểm Mèo thư thái, sở hữu ít nhất 4 bé mèo và trang trí phòng trên 80 điểm.</p>
+                    <div id="order-status-badge" class="text-xs font-extrabold text-emerald-600">Trạng thái: Đang tiến hành (2/4 điều kiện)</div>
+                </div>
+                <button onclick="claimOrderReward()" id="claim-order-btn" class="w-full cozy-btn py-2.5 bg-emerald-400 hover:bg-emerald-500 text-white font-black text-xs opacity-50 cursor-not-allowed" disabled>
+                    🎁 Nhận thưởng hoàn thành đơn
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. INVENTORY / KHO ĐỒ MODAL -->
+    <div id="inventory-modal" class="hidden fixed fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-md flex flex-col p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-2xl">📦</span><h3 class="font-black text-lg">Kho Đồ & Phụ Kiện</h3></div>
+                <button onclick="closeModal('inventory-modal')" class="cozy-btn px-3 py-1 font-black bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+            <div id="inventory-list" class="py-3 space-y-2 text-xs font-bold max-h-60 overflow-y-auto cozy-scroll"></div>
+        </div>
+    </div>
+
+    <!-- 7. DEVICES / THIẾT BỊ MODAL -->
+    <div id="devices-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-md flex flex-col p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-3 border-b-2 border-slate-200">
+            <div class="flex items-center gap-2"><span class="text-2xl">🤖</span><h3 class="font-black text-lg">Thiết Bị Tự Động Phòng Mèo</h3></div>
+                <button onclick="closeModal('devices-modal')" class="cozy-btn px-3 py-1 font-black bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+            <div class="py-3 space-y-2.5" id="devices-list-content"></div>
+        </div>
+    </div>
+
+    <!-- 8. CAMERA / CHỤP ẢNH KỶ NIỆM -->
+    <div id="camera-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-md flex flex-col p-5 bg-[#fffbf5] text-center space-y-3">
+            <div class="flex justify-between items-center pb-2 border-b-2 border-slate-200">
+                <h3 class="font-black text-base">📸 Chụp Ảnh Lưu Kỷ Niệm Cho Vợ</h3>
+                <button onclick="closeModal('camera-modal')" class="cozy-btn px-3 py-1 font-black bg-slate-200">✕</button>
+            </div>
+            <p class="text-xs font-bold text-slate-600">Đang tạo bức ảnh chụp căn phòng mèo siêu chill...</p>
+            <div id="camera-snapshot-preview" class="w-full h-48 bg-amber-100 rounded-xl border-2 border-slate-900 flex items-center justify-center text-3xl">🐱📸</div>
+            <button onclick="downloadSnapshot()" class="cozy-btn py-2.5 bg-emerald-400 text-white font-black text-xs">
+                📥 Tải ảnh về máy
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN GAME LOGIC & THREE.JS ENGINE SCRIPT -->
+    <script>
+        /********************************************************************
+         * 1. AUDIO & SYNTHESIZER (Web Audio API Sound FX)
+         ********************************************************************/
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playMeowSound(pitchMod = 1.0) {
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(450 * pitchMod, now);
+            osc.frequency.exponentialRampToValueAtTime(680 * pitchMod, now + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(320 * pitchMod, now + 0.45);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.48);
+        }
+
+        function playCoinSound() {
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(987.77, now);
+            osc.frequency.setValueAtTime(1318.51, now + 0.08);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        /********************************************************************
+         * 2. GAME STATE & CATALOG DATA
+         ********************************************************************/
+        const CAT_BREEDS = [
+            { id: 'ginger', name: 'Mèo Cam Mướp', price: 150, pattern: 'tabby', bodyColor: 0xf59e0b, stripeColor: 0xb45309, bellyColor: 0xfffbeb, earColor: 0xd97706, eyeColor: 0x10b981, noseColor: 0xf472b6, pitch: 1.0, earType: 'normal', fluffy: false, desc: 'Ham ăn, quấn chủ, vằn hổ chữ M trên trán' },
+            { id: 'british', name: 'Mèo Anh Lông Ngắn', price: 220, pattern: 'solid', bodyColor: 0x718096, stripeColor: 0x4a5568, bellyColor: 0xcbd5e1, earColor: 0x475569, eyeColor: 0xf59e0b, noseColor: 0xbe185d, pitch: 0.92, earType: 'normal', fluffy: false, desc: 'Má phệ tròn xoe, lông xám xanh nhung mịn' },
+            { id: 'calico', name: 'Mèo Tam Thể May Mắn', price: 260, pattern: 'calico', bodyColor: 0xfffdf9, stripeColor: 0xea580c, bellyColor: 0xffffff, earColor: 0x1e293b, eyeColor: 0x10b981, noseColor: 0xf472b6, pitch: 1.12, earType: 'normal', fluffy: false, desc: 'Đốm cam-đen-trắng tự nhiên, mang tài lộc cho vợ' },
+            { id: 'siamese', name: 'Mèo Xiêm Hoàng Gia', price: 300, pattern: 'siamese', bodyColor: 0xf5ead6, stripeColor: 0x3e2723, bellyColor: 0xfffdf9, earColor: 0x3e2723, eyeColor: 0x0284c7, noseColor: 0x3e2723, pitch: 1.05, earType: 'normal', fluffy: false, desc: 'Mặt nạ nâu cacao, mắt xanh biển sâu thẳm' },
+            { id: 'white', name: 'Mèo Ba Tư Trắng Tuyết', price: 280, pattern: 'solid', bodyColor: 0xf8fafc, stripeColor: 0xe2e8f0, bellyColor: 0xffffff, earColor: 0xfda4af, eyeColor: 0x38bdf8, noseColor: 0xf472b6, pitch: 1.18, earType: 'normal', fluffy: true, desc: 'Bờm lông cổ bông xù trắng muốt như mây' },
+            { id: 'tuxedo', name: 'Mèo Đen Đi Tất Trắng', price: 250, pattern: 'tuxedo', bodyColor: 0x1e293b, stripeColor: 0x0f172a, bellyColor: 0xffffff, earColor: 0x0f172a, eyeColor: 0xfacc15, noseColor: 0xf472b6, pitch: 0.88, earType: 'normal', fluffy: false, desc: 'Lịch lãm mặc vest đen, yếm ngực & 4 bàn chân trắng' },
+            { id: 'scottish', name: 'Mèo Anh Tai Cụp Vàng Bơ', price: 340, pattern: 'tabby', bodyColor: 0xfcd34d, stripeColor: 0xd97706, bellyColor: 0xfffbeb, earColor: 0xb45309, eyeColor: 0x059669, noseColor: 0xf472b6, pitch: 1.15, earType: 'folded', fluffy: true, desc: 'Đôi tai cụp siêu cưng, mặt bánh bao tròn trịa' },
+            { id: 'pinky', name: 'Mèo Hồng Đào Tiên Tử', price: 450, pattern: 'tabby', bodyColor: 0xf9a8d4, stripeColor: 0xec4899, bellyColor: 0xfce7f3, earColor: 0xf472b6, eyeColor: 0x8b5cf6, noseColor: 0xdb2777, pitch: 1.25, earType: 'normal', fluffy: true, desc: 'Giống mèo hiếm siêu cấp đáng yêu dành riêng tặng Vợ' }
+        ];
+
+        const CAT_ACCESSORIES = [
+            { id: 'bell', name: 'Chuông Vàng Đỏ' },
+            { id: 'sprout', name: 'Mầm Cây Non 🌱' },
+            { id: 'crown', name: 'Vương Miện Vàng 👑' },
+            { id: 'bow', name: 'Nơ Hồng Xinh 🎀' },
+            { id: 'beret', name: 'Mũ Nồi Họa Sĩ 🎨' }
+        ];
+
+        const DECOR_CATALOG = [
+            { id: 'sakura_left', name: 'Cây Anh Đào Trắng 🌸', price: 180, type: 'tree', score: 15 },
+            { id: 'sakura_right', name: 'Cây Anh Đào Hồng 🌸', price: 180, type: 'tree', score: 15 },
+            { id: 'cat_tree', name: 'Cây Trèo Mèo Nhiều Tầng 🌳', price: 250, type: 'furniture', score: 22 },
+            { id: 'wood_arch', name: 'Vòm Gỗ Tự Nhiên 🪵', price: 210, type: 'furniture', score: 18 },
+            { id: 'cozy_bed', name: 'Ổ Nằm Lót Bông Êm Ái 🛏️', price: 120, type: 'furniture', score: 12 }
+        ];
+
+        const MAIN_QUESTS = [
+            { title: 'Nhà sưu tầm Boss', desc: 'Nuôi 5 bé mèo đáng yêu cùng lúc trong phòng', check: s => ({ cur: s.cats.length, max: 5 }), reward: 120 },
+            { title: 'Căn phòng tri kỷ', desc: 'Đạt tổng điểm phòng trên 90 điểm', check: s => ({ cur: Math.round(calculateRoomScores().total), max: 90 }), reward: 200 },
+            { title: 'Bữa tiệc hoàng gia', desc: 'Cho mèo ăn đầy đủ 3 lần', check: s => ({ cur: s.stats.fedToday, max: 3 }), reward: 150 },
+            { title: 'Con Sen Của Vợ', desc: 'Vuốt ve cưng nựng mèo 5 lần', check: s => ({ cur: s.stats.pettedToday, max: 5 }), reward: 180 }
+        ];
+
+        let state = {
+            coins: 1470,
+            roomName: 'Phòng Mèo Của Vợ',
+            gameSpeed: 1,
+            lampMode: 'on',
+            nightMode: false,
+            leftPanelOpen: true,
+            rightPanelOpen: true,
+            hunger: 99,
+            happiness: 85,
+            plantScore: 82,
+            cleanliness: 97,
+            foodStock: 19,
+            catnipStock: 23,
+            ownedDecor: ['sakura_left', 'sakura_right', 'cat_tree', 'wood_arch', 'cozy_bed'],
+            activeDecor: ['sakura_left', 'sakura_right', 'cat_tree', 'wood_arch', 'cozy_bed'],
+            ownedDevices: ['air_filter', 'water_fountain'],
+            mainQuestIdx: 0,
+            stats: { totalPets: 3, fedToday: 1, cleanedToday: 0, pettedToday: 2 },
+            dailyClaimed: { keepFull: false, feedTwice: false, petFive: false },
+            guestOrder: { clientName: 'Cô Ngọc', reward: 350, claimed: false },
+            cats: [
+                { id: 'c1', name: 'Miu Cam', breedId: 'ginger', hunger: 98, love: 95, scale: 1.0, accessory: 'bell' },
+                { id: 'c2', name: 'Bơ Xám', breedId: 'british', hunger: 94, love: 90, scale: 1.04, accessory: 'sprout' },
+                { id: 'c3', name: 'Tam Thể', breedId: 'calico', hunger: 96, love: 92, scale: 0.96, accessory: 'bow' },
+                { id: 'c4', name: 'Bạch Tuyết', breedId: 'white', hunger: 99, love: 96, scale: 0.94, accessory: 'crown' }
+            ]
+        };
+
+        function toggleSidePanel(side) {
+            if (side === 'left') state.leftPanelOpen = !state.leftPanelOpen;
+            else if (side === 'right') state.rightPanelOpen = !state.rightPanelOpen;
+            applySidePanelStates();
+            saveGameState();
+        }
+
+        function applySidePanelStates() {
+            const leftCard = document.getElementById('left-panel-card');
+            const leftTab = document.getElementById('left-reopen-tab');
+            const rightCard = document.getElementById('right-panel-card');
+            const rightTab = document.getElementById('right-reopen-tab');
+
+            if (leftCard && leftTab) {
+                if (state.leftPanelOpen) { leftCard.classList.remove('left-collapsed'); leftTab.classList.add('hidden'); }
+                else { leftCard.classList.add('left-collapsed'); leftTab.classList.remove('hidden'); }
+            }
+            if (rightCard && rightTab) {
+                if (state.rightPanelOpen) { rightCard.classList.remove('right-collapsed'); rightTab.classList.add('hidden'); }
+                else { rightCard.classList.add('right-collapsed'); rightTab.classList.remove('hidden'); }
+            }
+        }
+
+        function saveGameState() {
+            localStorage.setItem('meowlator_wife_state_v3', JSON.stringify(state));
+        }
+
+        function loadGameState() {
+            const saved = localStorage.getItem('meowlator_wife_state_v3');
+            if (saved) {
+                try { state = JSON.parse(saved); } catch (e) {}
+            }
+        }
+
+        /********************************************************************
+         * 3. THREE.JS 3D ROOM SCENE & LIGHTING
+         ********************************************************************/
+        let scene, camera, renderer;
+        let roomGroup, catActors = [];
+        let foodPellets = [];
+        let laserActive = false;
+        let laserTarget3D = new THREE.Vector3(0, 0, 0);
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedCatId = null;
+
+        const BOX_W = 10, BOX_H = 5.2, BOX_D = 6.5;
+        const FLOOR_Y = -2.6;
+
+        // Frame the room so floor + cats are fully visible on any screen shape
+        function fitCamera() {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.aspect = aspect;
+            const halfV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+            const needHalfW = 4.0;                                   // cats walk about x = -2.5..2.5 (+ body width)
+            const dist = Math.min(15, Math.max(6.0, needHalfW / (halfV * aspect)));
+            camera.position.set(0, 2.3, 1.2 + dist);
+            camera.lookAt(0, -1.75, 0.2);
+            camera.updateProjectionMatrix();
+        }
+
+        function initThreeScene() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xfcefe3);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            fitCamera();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(renderer.domElement);
+
+            // Lighting Setup
+            const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.65);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffedd5, 0.85);
+            sunLight.position.set(5, 8, 4);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            sunLight.shadow.bias = -0.001;
+            scene.add(sunLight);
+            window.__amb = ambientLight; window.__sun = sunLight;
+
+            roomGroup = new THREE.Group();
+            scene.add(roomGroup);
+
+            buildRoomInterior();
+            rebuildRoomDecorAndCats();
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('pointermove', onPointerMove);
+        }
+
+        // ===== ROOM: wood floor, wallpaper, big window with street view =====
+        const street = { cars: [], clouds: [], skyMat: null, skyDay: null, skyNight: null, glow: [] };
+
+        function canvasTex(w, h, draw, repeat) {
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            draw(c.getContext('2d'), w, h);
+            const t = new THREE.CanvasTexture(c);
+            t.encoding = THREE.sRGBEncoding;
+            if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            return t;
+        }
+
+        function paintStreet(night) {
+            return canvasTex(2048, 1024, (g, W, H) => {
+                const sky = g.createLinearGradient(0, 0, 0, H * 0.62);
+                if (night) { sky.addColorStop(0, '#0b1230'); sky.addColorStop(1, '#3d4a82'); } else { sky.addColorStop(0, '#6fbdf0'); sky.addColorStop(0.55, '#bfe3f7'); sky.addColorStop(1, '#fde7cf'); }
+                g.fillStyle = sky; g.fillRect(0, 0, W, H);
+                if (night) { g.fillStyle = '#fff'; for (let i = 0; i < 160; i++) { g.globalAlpha = 0.4 + Math.random() * 0.6; g.fillRect(Math.random() * W, Math.random() * H * 0.45, 2, 2); } g.globalAlpha = 1; g.fillStyle = '#fff6d6'; g.beginPath(); g.arc(W * 0.78, H * 0.26, 46, 0, 7); g.fill(); }
+                else { g.fillStyle = 'rgba(255,244,200,0.9)'; g.beginPath(); g.arc(W * 0.2, H * 0.27, 52, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,0.85)'; [[0.45, 0.27], [0.7, 0.33], [0.9, 0.25], [0.12, 0.38]].forEach(([x, y]) => { for (let k = 0; k < 4; k++) { g.beginPath(); g.ellipse(W * x + k * 38, H * y + (k % 2) * 8, 70, 26, 0, 0, 7); g.fill(); } }); }
+                const base = H * 0.62;
+                // far skyline
+                g.fillStyle = night ? '#232a52' : '#b4c6e6';
+                for (let x = 0; x < W; x += 70) g.fillRect(x, base - 90 - Math.random() * 130, 62, 400);
+                // near pastel buildings with windows
+                const pal = night ? ['#4a4468', '#3f4f6e', '#5a4a62', '#3d5a6a'] : ['#f6c6d0', '#fde2a8', '#bfe0d2', '#c9d6f5', '#f9d5bb', '#e7cdee'];
+                let x = -20, i = 0;
+                while (x < W) {
+                    const w = 150 + Math.random() * 110, h = 190 + Math.random() * 230;
+                    g.fillStyle = pal[i++ % pal.length]; g.fillRect(x, base - h, w, h);
+                    g.fillStyle = night ? '#2a2f55' : '#f4a7b9'; g.fillRect(x - 4, base - h - 12, w + 8, 14);
+                    for (let wy = base - h + 26; wy < base - 40; wy += 46) for (let wx = x + 16; wx < x + w - 28; wx += 40) {
+                        g.fillStyle = night ? (Math.random() < 0.55 ? '#ffd978' : '#273056') : '#9fd0ec'; g.fillRect(wx, wy, 24, 30);
+                        g.fillStyle = night ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)'; g.fillRect(wx, wy, 24, 8);
+                    }
+                    x += w + 8;
+                }
+                // sidewalk, road, lane marks
+                g.fillStyle = night ? '#6b6674' : '#e9e1d5'; g.fillRect(0, base, W, H * 0.07);
+                g.fillStyle = night ? '#262a3a' : '#6b7280'; g.fillRect(0, base + H * 0.07, W, H * 0.2);
+                g.fillStyle = night ? '#d8d2a8' : '#fff'; for (let lx = 20; lx < W; lx += 150) g.fillRect(lx, base + H * 0.165, 80, 8);
+                g.fillStyle = night ? '#1a1d2b' : '#d6cdbf'; g.fillRect(0, base + H * 0.27, W, H);
+                // distant round trees on the sidewalk
+                for (let tx = 90; tx < W; tx += 260) { g.fillStyle = night ? '#1f4a3a' : '#5dbb7a'; g.beginPath(); g.arc(tx, base - 30, 42, 0, 7); g.arc(tx + 28, base - 12, 34, 0, 7); g.fill(); g.fillStyle = '#7a5a40'; g.fillRect(tx - 4, base - 6, 8, 18); }
+            });
+        }
+
+        function buildRoomInterior() {
+            const shell = new THREE.Group();
+            const F = FLOOR_Y, HW = BOX_W / 2, HD = BOX_D / 2;
+            const add = (m, x, y, z, rx, ry) => { m.position.set(x, y, z); if (rx) m.rotation.x = rx; if (ry) m.rotation.y = ry; shell.add(m); return m; };
+            const box = (w, h, d, hex, rough) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), catMat(hex, rough === undefined ? 0.7 : rough));
+
+            // Wood plank floor
+            const floorTex = canvasTex(512, 512, (g, W, H) => {
+                for (let r = 0; r < 8; r++) {
+                    const l = 62 + Math.random() * 8; g.fillStyle = `hsl(32,${48 + Math.random() * 8}%,${l}%)`; g.fillRect(0, r * 64, W, 64);
+                    g.fillStyle = 'rgba(90,50,20,0.35)'; g.fillRect(0, r * 64, W, 3);
+                    const off = Math.random() * W; g.fillRect(off, r * 64, 3, 64);
+                    g.globalAlpha = 0.07; for (let k = 0; k < 120; k++) { g.fillStyle = '#5a3418'; g.fillRect(Math.random() * W, r * 64 + Math.random() * 60, 40 + Math.random() * 60, 1); } g.globalAlpha = 1;
+                }
+            }, true);
+            floorTex.repeat.set(BOX_W / 3.2, BOX_D / 3.2);
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(BOX_W, BOX_D), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.55 }));
+            floor.receiveShadow = true; add(floor, 0, F, 0, -Math.PI / 2);
+
+            // Rug
+            const rug = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.02, 48), catMat(0xf4a6b8, 0.95));
+            rug.scale.set(3.2, 1, 1.7); rug.receiveShadow = true; add(rug, 0, F + 0.012, 1.0);
+            const rug2 = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.02, 48), catMat(0xfde2e4, 0.95));
+            rug2.scale.set(2.7, 1, 1.35); rug2.receiveShadow = true; add(rug2, 0, F + 0.024, 1.0);
+
+            // Wallpaper texture: soft stripes + wainscot panel
+            const wallTex = canvasTex(256, 512, (g, W, H) => {
+                g.fillStyle = '#fff4e2'; g.fillRect(0, 0, W, H);
+                g.fillStyle = 'rgba(244,166,184,0.16)'; for (let x = 0; x < W; x += 64) g.fillRect(x, 0, 24, H * 0.68);
+                g.fillStyle = '#f6dcc6'; g.fillRect(0, H * 0.68, W, H);
+                g.strokeStyle = 'rgba(150,100,70,0.35)'; g.lineWidth = 3; for (let x = 10; x < W; x += 128) g.strokeRect(x, H * 0.72, 108, H * 0.22);
+                g.fillStyle = '#fffaf0'; g.fillRect(0, H * 0.675, W, 8);
+            }, true);
+            const wallPlane = (w, h, u0, v0) => {
+                const t = wallTex.clone(); t.needsUpdate = true; t.repeat.set(w / 2.5, h / BOX_H); t.offset.set(u0 / 2.5, v0 / BOX_H);
+                const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: t, roughness: 0.95 })); m.receiveShadow = true; return m;
+            };
+            // window opening: x -2.4..2.4, height 1.3..4.4 above the floor
+            const WX = 2.4, WB = 1.3, WT = 4.4, zb = -HD;
+            add(wallPlane(HW - WX, BOX_H, 0, 0), -(HW + WX) / 2, F + BOX_H / 2, zb);
+            add(wallPlane(HW - WX, BOX_H, HW + WX, 0), (HW + WX) / 2, F + BOX_H / 2, zb);
+            add(wallPlane(WX * 2, WB, HW - WX, 0), 0, F + WB / 2, zb);
+            add(wallPlane(WX * 2, BOX_H - WT, HW - WX, WT), 0, F + (WT + BOX_H) / 2, zb);
+            add(wallPlane(BOX_D, BOX_H, 0, 0), -HW, F + BOX_H / 2, 0, 0, Math.PI / 2);
+            add(wallPlane(BOX_D, BOX_H, 0, 0), HW, F + BOX_H / 2, 0, 0, -Math.PI / 2);
+
+            // Street view: painted backdrop + 3D cars/trees/lamp
+            const sky = new THREE.Mesh(new THREE.PlaneGeometry(18, 9), new THREE.MeshBasicMaterial({ map: paintStreet(false) }));
+            street.skyDay = sky.material.map; street.skyNight = paintStreet(true); street.skyMat = sky.material;
+            add(sky, 0, -1.4, -13);
+            const carMk = (hex) => {
+                const g = new THREE.Group();
+                const body = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.38, 0.7), catMat(hex, 0.4)); body.position.y = 0.3; g.add(body);
+                const cab = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.32, 0.64), catMat(0xe6f2fb, 0.2)); cab.position.set(-0.05, 0.64, 0); g.add(cab);
+                const roof = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.66), catMat(hex, 0.4)); roof.position.set(-0.05, 0.82, 0); g.add(roof);
+                [[-0.5, 0.33], [0.5, 0.33], [-0.5, -0.33], [0.5, -0.33]].forEach(([x, z]) => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 14), catMat(0x1f2937)); w.rotation.x = Math.PI / 2; w.position.set(x, 0.15, z); g.add(w); });
+                const hl = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshBasicMaterial({ color: 0xfff1a8 })); hl.position.set(0.76, 0.32, 0.22); g.add(hl);
+                return g;
+            };
+            [[0xf87171, -5.2, 1.0, 1], [0x60a5fa, -5.6, 0.7, -1], [0xfacc15, -5.2, 0.55, 1]].forEach(([hex, z, sp, dir], i) => {
+                const c = carMk(hex); c.scale.setScalar(0.8); c.position.set(-6 + i * 4.5, -1.78, z); c.rotation.y = dir > 0 ? 0 : Math.PI; c.userData = { sp: sp * dir }; shell.add(c); street.cars.push(c);
+            });
+            const treeMk = (x) => {
+                const g = new THREE.Group();
+                const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 1.0, 8), catMat(0x7a5a40)); tr.position.y = 0.5; g.add(tr);
+                [[0, 1.3, 0, 0.5], [0.3, 1.1, 0.1, 0.38], [-0.3, 1.15, 0, 0.4]].forEach(([a, b, c, r], i) => { const s = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), catMat([0x5dbb7a, 0x7ccf8e, 0x4aa86a][i], 0.8)); s.position.set(a, b, c); g.add(s); });
+                g.position.set(x, -1.8, -4.6); shell.add(g);
+            };
+            treeMk(-1.9); treeMk(2.1);
+            const lamp = new THREE.Group();
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 2.1, 8), catMat(0x374151)); pole.position.y = 1.05; lamp.add(pole);
+            const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), new THREE.MeshStandardMaterial({ color: 0xfff3c4, emissive: 0xffd966, emissiveIntensity: 0.1 })); bulb.position.y = 2.15; lamp.add(bulb);
+            lamp.position.set(0.9, -1.8, -4.6); shell.add(lamp); street.glow.push(bulb);
+            for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.0 })); street.clouds.push(c); }
+
+            // Window frame, sill, mullions, glass, curtains
+            const wood = 0xd9b48a, cy = F + (WB + WT) / 2, ch = WT - WB, fz = zb + 0.12;
+            add(box(WX * 2 + 0.3, 0.14, 0.2, wood), 0, F + WT + 0.07, fz);
+            add(box(0.14, ch, 0.2, wood), -WX - 0.07, cy, fz); add(box(0.14, ch, 0.2, wood), WX + 0.07, cy, fz);
+            add(box(WX * 2 + 0.7, 0.1, 0.5, 0xf2dcc0), 0, F + WB - 0.05, zb + 0.25);
+            add(box(0.08, ch, 0.08, wood), 0, cy, fz); add(box(WX * 2, 0.08, 0.08, wood), 0, cy + 0.2, fz);
+            const glass = new THREE.Mesh(new THREE.PlaneGeometry(WX * 2, ch), new THREE.MeshBasicMaterial({ color: 0xdff1ff, transparent: true, opacity: 0.1, depthWrite: false }));
+            add(glass, 0, cy, zb + 0.1);
+            add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 6.4, 10), catMat(0xb08968)), 0, F + WT + 0.45, zb + 0.35, 0).rotation.z = Math.PI / 2;
+            [-1, 1].forEach(s => { for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 3.5, 12), catMat(k % 2 ? 0xf7a8bf : 0xfbc3d2, 0.9)); c.castShadow = true; add(c, s * (2.7 + k * 0.2), F + 2.85, zb + 0.4); } });
+
+            // Skirting, wall pictures
+            add(box(BOX_W, 0.2, 0.06, 0xfffaf0), 0, F + 0.1, zb + 0.03);
+            add(box(0.06, 0.2, BOX_D, 0xfffaf0), -HW + 0.03, F + 0.1, 0); add(box(0.06, 0.2, BOX_D, 0xfffaf0), HW - 0.03, F + 0.1, 0);
+            [[-1, -1.0, 0xffd6a5, 0xc9ada7], [-1, 1.2, 0xbde0fe, 0xa2d2ff], [1, -0.6, 0xcaffbf, 0xffc6ff], [1, 1.1, 0xfdffb6, 0xffadad]].forEach(([s, z, fill, fr], i) => {
+                const y = F + (i % 2 ? 2.7 : 3.0);
+                add(box(0.06, 0.95, 0.75, fr), s * (HW - 0.04), y, z); add(box(0.07, 0.75, 0.55, fill, 0.9), s * (HW - 0.06), y, z);
+            });
+            roomGroup.add(shell);
+        }
+
+        function setNightScene(n) {
+            if (street.skyMat) { street.skyMat.map = n ? street.skyNight : street.skyDay; street.skyMat.needsUpdate = true; }
+            street.glow.forEach(b => { b.material.emissiveIntensity = n ? 2.2 : 0.1; });
+            if (window.__amb) window.__amb.intensity = n ? 0.32 : 0.65;
+            if (window.__sun) window.__sun.intensity = n ? 0.22 : 0.85;
+        }
+
+        function animateStreet(dt) {
+            street.cars.forEach(c => { c.position.x += c.userData.sp * dt; if (c.position.x > 7) c.position.x = -7; if (c.position.x < -7) c.position.x = 7; });
+        }
+
+        // Keep cats from overlapping each other
+        function separateCats() {
+            const minD = 0.95;
+            for (let i = 0; i < catActors.length; i++) for (let j = i + 1; j < catActors.length; j++) {
+                const a = catActors[i].mesh.position, b = catActors[j].mesh.position;
+                let dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
+                if (d < minD) {
+                    if (d < 0.001) { dx = Math.random() - 0.5; dz = Math.random() - 0.5; d = Math.hypot(dx, dz); }
+                    const push = (minD - d) * 0.25, nx = dx / d, nz = dz / d;
+                    a.x -= nx * push; a.z -= nz * push; b.x += nx * push; b.z += nz * push;
+                }
+            }
+            catActors.forEach(c => { const p = c.mesh.position; p.x = Math.max(-4.2, Math.min(4.2, p.x)); p.z = Math.max(-0.9, Math.min(2.9, p.z)); });
+        }
+
+        // ===== DECOR (potted trees, cat tree, wooden arch, bed) =====
+        function createDecorMesh(decorId) {
+            const g = new THREE.Group(), F = FLOOR_Y;
+            const put = (geo, mat, x, y, z, sx, sy, sz, shadow) => { const m = addMesh(g, geo, mat, x, y, z, sx, sy, sz); m.castShadow = shadow !== false; m.receiveShadow = true; return m; };
+            if (decorId.includes('sakura')) {
+                const pink = decorId.includes('right'), x = pink ? 4.3 : -4.3, z = -2.5;
+                put(new THREE.CylinderGeometry(0.34, 0.24, 0.42, 18), catMat(0xc2693e, 0.8), x, F + 0.21, z);
+                put(new THREE.CylinderGeometry(0.3, 0.3, 0.04, 18), catMat(0x4a3224, 1), x, F + 0.4, z);
+                put(new THREE.CylinderGeometry(0.06, 0.11, 1.4, 10), catMat(0x6b4a35), x, F + 1.1, z);
+                [-1, 1].forEach(s => { const br = put(new THREE.CylinderGeometry(0.03, 0.05, 0.7, 8), catMat(0x6b4a35), x + s * 0.25, F + 1.65, z); br.rotation.z = -s * 0.6; });
+                const cols = pink ? [0xffb7c5, 0xffc9d4, 0xff9fb5] : [0xffffff, 0xf7f3f8, 0xffe8ef];
+                [[0, 2.0, 0, 0.7], [0.5, 1.8, 0.1, 0.5], [-0.5, 1.85, -0.05, 0.55], [0.25, 2.5, 0, 0.45], [-0.3, 2.4, 0.1, 0.42], [0, 1.75, 0.45, 0.4]].forEach(([a, b, c, r], i) => {
+                    put(new THREE.SphereGeometry(r, 16, 14), catMat(cols[i % 3], 0.75), x + a, F + b, z + c);
+                });
+            } else if (decorId === 'cat_tree') {
+                const x = -3.1, z = -2.2, sisal = catMat(0xd9b98c, 1), cream = catMat(0xfff6e0, 0.8), pinkM = catMat(0xf9a8c0, 0.9);
+                put(new THREE.BoxGeometry(1.2, 0.14, 1.2), catMat(0xb08968), x, F + 0.07, z);
+                put(new THREE.CylinderGeometry(0.12, 0.12, 2.4, 14), sisal, x, F + 1.3, z);
+                put(new THREE.CylinderGeometry(0.1, 0.1, 1.0, 14), sisal, x + 0.4, F + 0.55, z + 0.1);
+                put(new THREE.CylinderGeometry(0.58, 0.58, 0.1, 24), cream, x + 0.4, F + 1.05, z + 0.1);
+                put(new THREE.CylinderGeometry(0.52, 0.52, 0.1, 24), cream, x - 0.35, F + 1.75, z);
+                put(new THREE.TorusGeometry(0.46, 0.14, 10, 24), pinkM, x, F + 2.5, z, 1, 1, 1).rotation.x = Math.PI / 2;
+                put(new THREE.CylinderGeometry(0.42, 0.42, 0.18, 22), cream, x, F + 2.48, z);
+                const t = put(new THREE.CylinderGeometry(0.008, 0.008, 0.5, 5), catMat(0x888888), x + 0.5, F + 0.78, z + 0.5); t.position.y = F + 0.78;
+                put(new THREE.SphereGeometry(0.09, 10, 8), catMat(0xef4444, 0.4), x + 0.5, F + 0.5, z + 0.5);
+            } else if (decorId === 'wood_arch') {
+                const w = catMat(0xc99a6b, 0.8), x = 0, z = -1.1;
+                [-0.95, 0.95].forEach(s => put(new THREE.CylinderGeometry(0.1, 0.12, 1.9, 12), w, x + s, F + 0.95, z));
+                const arc = put(new THREE.TorusGeometry(0.95, 0.1, 10, 28, Math.PI), w, x, F + 1.9, z); 
+                for (let i = 0; i < 9; i++) { const a = Math.PI * (i + 0.5) / 9; put(new THREE.SphereGeometry(0.1, 8, 8), catMat(i % 3 ? 0x6ec48b : 0xffa8c5, 0.8), x + Math.cos(a) * 0.95, F + 1.9 + Math.sin(a) * 0.95, z + 0.05, 1, 1, 1, false); }
+            } else if (decorId === 'cozy_bed') {
+                const x = 2.8, z = -1.9;
+                const ring = put(new THREE.TorusGeometry(0.52, 0.17, 12, 28), catMat(0xf472b6, 0.9), x, F + 0.17, z); ring.rotation.x = Math.PI / 2;
+                put(new THREE.CylinderGeometry(0.5, 0.5, 0.18, 24), catMat(0xfde2e4, 1), x, F + 0.1, z);
+                put(new THREE.SphereGeometry(0.2, 12, 10), catMat(0xfff1f2, 1), x + 0.12, F + 0.26, z, 1.3, 0.55, 1);
+            }
+            return g;
+        }
+
+        function rebuildRoomDecorAndCats() {
+            // Remove old decor/cats except room shell
+            while (roomGroup.children.length > 1) {
+                roomGroup.remove(roomGroup.children[1]);
+            }
+            catActors = [];
+
+            // Build active decor models
+            state.activeDecor.forEach(decorId => {
+                const mesh = createDecorMesh(decorId);
+                if (mesh) roomGroup.add(mesh);
+            });
+
+            // Build active cats in the room
+            state.cats.forEach((catData, idx) => {
+                const catActor = create3DCatMesh(catData);
+                // Distribute cats nicely across the room floor
+                const xOffset = (idx - (state.cats.length - 1) / 2) * 1.5;
+                catActor.mesh.position.set(xOffset, FLOOR_Y + 0.16, 0.3 + (idx % 2) * 1.1);
+                roomGroup.add(catActor.mesh);
+                catActors.push(catActor);
+            });
+        }
+
+        /********************************************************************
+         * 4. STUDIO-QUALITY 3D CAT MODEL BUILDER (Procedural Fur, Cheeks, Eyes)
+         ********************************************************************/
+        const furTextureCache = {};
+        const eyeTextureCache = {};
+
+        function hexToCss(hex) { return '#' + hex.toString(16).padStart(6, '0'); }
+
+        // ===== CUTE CHIBI CAT BUILDER =====
+        function sc(hex) { return new THREE.Color(hex).convertSRGBToLinear(); }
+        function catMat(hex, rough) { return new THREE.MeshStandardMaterial({ color: sc(hex), roughness: rough === undefined ? 0.85 : rough }); }
+        function catBasic(hex, extra) { return new THREE.MeshBasicMaterial(Object.assign({ color: sc(hex) }, extra || {})); }
+        function addMesh(parent, geo, mat, x, y, z, sx, sy, sz) {
+            const m = new THREE.Mesh(geo, mat);
+            m.position.set(x || 0, y || 0, z || 0);
+            if (sx !== undefined) m.scale.set(sx, sy, sz);
+            parent.add(m);
+            return m;
+        }
+
+        // kind: 'body' (stripes/patches around the back) | 'head' (face markings, front of face at x=128,y=128)
+        function getCatCoatTexture(breed, kind) {
+            kind = kind || 'body';
+            const key = breed.id + '_' + kind;
+            if (furTextureCache[key]) return furTextureCache[key];
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const base = hexToCss(breed.bodyColor), stripe = hexToCss(breed.stripeColor), belly = hexToCss(breed.bellyColor);
+            ctx.fillStyle = base; ctx.fillRect(0, 0, 512, 256);
+            ctx.globalAlpha = 0.05;
+            for (let i = 0; i < 1500; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#000'; ctx.fillRect(Math.random() * 512, Math.random() * 256, 1.5, 6); }
+            const blob = (x, y, rx, ry, col, a) => { ctx.globalAlpha = a === undefined ? 1 : a; ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); };
+            if (kind === 'body') {
+                if (breed.pattern === 'tabby') {
+                    for (let x = 6; x < 512; x += 24) blob(x, 100, 5 + Math.random() * 3, 52 + Math.random() * 14, stripe, 0.6);
+                } else if (breed.pattern === 'calico') {
+                    blob(70, 80, 46, 40, '#ea580c'); blob(190, 90, 52, 42, '#1e293b'); blob(310, 70, 44, 38, '#f97316'); blob(430, 95, 50, 42, '#1e293b');
+                } else if (breed.pattern === 'siamese') {
+                    ctx.globalAlpha = 1; const g = ctx.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(120,85,70,0.55)'); g.addColorStop(0.45, 'rgba(120,85,70,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 256);
+                }
+            } else {
+                if (breed.pattern === 'tabby') { [-14, 0, 14].forEach(dx => blob(128 + dx, 62, 3.5, dx === 0 ? 24 : 17, stripe, 0.75)); }
+                else if (breed.pattern === 'calico') { blob(60, 85, 50, 48, '#ea580c'); blob(190, 80, 44, 44, '#1e293b'); }
+                else if (breed.pattern === 'siamese') { const g = ctx.createRadialGradient(128, 160, 5, 128, 160, 75); g.addColorStop(0, 'rgba(62,39,35,0.95)'); g.addColorStop(0.6, 'rgba(62,39,35,0.6)'); g.addColorStop(1, 'rgba(62,39,35,0)'); ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 256); }
+                else if (breed.pattern === 'tuxedo') { blob(128, 180, 40, 32, '#ffffff'); blob(128, 120, 9, 34, '#ffffff'); }
+                if (breed.pattern !== 'tuxedo' && breed.pattern !== 'siamese') blob(128, 182, 38, 26, belly, 0.95); // muzzle
+            }
+            ctx.globalAlpha = 1;
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping; tex.needsUpdate = true;
+            furTextureCache[key] = tex;
+            return tex;
+        }
+
+        function create3DCatMesh(catData) {
+            const breed = CAT_BREEDS.find(b => b.id === catData.breedId) || CAT_BREEDS[0];
+            const root = new THREE.Group();
+            root.userData.catId = catData.id;
+
+            const lit = (tex) => new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
+            const bodyMat = lit(getCatCoatTexture(breed, 'body'));
+            const headMat = lit(getCatCoatTexture(breed, 'head'));
+            const solidMat = catMat(breed.pattern === 'siamese' ? breed.bodyColor : breed.bodyColor);
+            const bellyMat = catMat(breed.bellyColor);
+            const earMat = catMat(breed.earColor);
+            const innerEarMat = catMat(0xffb3c1, 0.6);
+            const dark = (breed.pattern === 'tuxedo' || breed.pattern === 'calico');
+            const pawMat = (dark ? bellyMat : (breed.pattern === 'siamese' ? earMat : solidMat));
+            const furry = breed.fluffy;
+
+            const bodyPivot = new THREE.Group();
+            bodyPivot.position.set(0, 0.4, 0);
+            root.add(bodyPivot);
+
+            const torso = addMesh(bodyPivot, new THREE.SphereGeometry(0.3, 28, 24), bodyMat, 0, 0, 0, furry ? 1.12 : 1.0, 0.9, 1.22);
+            torso.castShadow = true;
+            addMesh(bodyPivot, new THREE.SphereGeometry(0.24, 20, 18), bellyMat, 0, -0.08, 0.1, 0.9, 0.7, 1.1);
+
+            // ---- Head ----
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, 0.3, 0.36);
+            bodyPivot.add(headGroup);
+            const head = addMesh(headGroup, new THREE.SphereGeometry(0.36, 32, 28), headMat, 0, 0, 0, furry ? 1.22 : 1.12, 0.93, 1.0);
+            head.castShadow = true;
+            if (furry) { // fluffy neck ruff
+                addMesh(headGroup, new THREE.SphereGeometry(0.2, 16, 14), bellyMat, 0, -0.26, 0.1, 1.5, 0.7, 1.0);
+            }
+
+            // Eyes: big glossy kawaii eyes (group scales on Y to blink)
+            const eyes = [];
+            const eyeBlack = catBasic(0x15151a), irisMat = new THREE.MeshStandardMaterial({ color: sc(breed.eyeColor), roughness: 0.25, emissive: sc(breed.eyeColor), emissiveIntensity: 0.25 });
+            const shine = catBasic(0xffffff);
+            [-1, 1].forEach(side => {
+                const eye = new THREE.Group();
+                eye.position.set(side * 0.16, 0.0, 0.3);
+                eye.rotation.y = side * 0.3;
+                addMesh(eye, new THREE.SphereGeometry(0.075, 20, 18), eyeBlack, 0, 0, 0, 1, 1.18, 0.5);
+                addMesh(eye, new THREE.SphereGeometry(0.058, 20, 18), irisMat, 0, -0.005, 0.014, 1, 1.12, 0.4);
+                addMesh(eye, new THREE.SphereGeometry(0.031, 16, 14), eyeBlack, 0, -0.005, 0.024, 0.8, 1.25, 0.3);
+                addMesh(eye, new THREE.SphereGeometry(0.02, 12, 10), shine, -0.016, 0.03, 0.034, 1, 1, 0.5);
+                addMesh(eye, new THREE.SphereGeometry(0.01, 10, 8), shine, 0.018, -0.026, 0.034, 1, 1, 0.5);
+                headGroup.add(eye);
+                eyes.push(eye);
+            });
+
+            // Nose, mouth, whiskers, blush
+            addMesh(headGroup, new THREE.SphereGeometry(0.03, 12, 10), catMat(breed.noseColor || 0xf472b6, 0.35), 0, -0.065, 0.35, 1.25, 0.8, 0.8);
+            const mouthMat = catBasic(0x3b2a26);
+            [-1, 1].forEach(side => {
+                const m = addMesh(headGroup, new THREE.TorusGeometry(0.026, 0.0055, 6, 14, Math.PI), mouthMat, side * 0.026, -0.105, 0.343);
+                m.rotation.z = Math.PI;
+                const bl = addMesh(headGroup, new THREE.CircleGeometry(0.045, 16), catBasic(0xff7b9c, { transparent: true, opacity: 0.45, depthWrite: false }), side * 0.235, -0.07, 0.295);
+                bl.rotation.y = side * 0.65;
+                [-0.14, 0.14].forEach(ang => {
+                    const w = addMesh(headGroup, new THREE.CylinderGeometry(0.0035, 0.0025, 0.24, 4), catBasic(0xf5f5f5), side * 0.3, -0.075 + ang * 0.15, 0.31);
+                    w.rotation.z = Math.PI / 2 + side * ang; w.rotation.y = side * 0.35;
+                });
+            });
+
+            // Ears (rounded triangles with pink inside; folded variant for Scottish Fold)
+            const ears = [];
+            const folded = breed.earType === 'folded';
+            [-1, 1].forEach(side => {
+                const pivot = new THREE.Group();
+                pivot.position.set(side * 0.22, 0.25, -0.02);
+                pivot.rotation.z = -side * (folded ? 0.7 : 0.38);
+                if (folded) pivot.rotation.x = 0.55;
+                const h = folded ? 0.15 : 0.26;
+                const outer = addMesh(pivot, new THREE.ConeGeometry(0.13, h, 20), earMat, 0, h / 2 - 0.02, 0);
+                outer.scale.z = 0.55; outer.castShadow = true;
+                if (!folded) { const inner = addMesh(pivot, new THREE.ConeGeometry(0.085, h * 0.8, 16), innerEarMat, 0, h * 0.4 - 0.02, 0.03); inner.scale.z = 0.4; }
+                addMesh(pivot, new THREE.SphereGeometry(0.02, 8, 8), earMat, 0, h - 0.02, 0);
+                headGroup.add(pivot);
+                ears.push(pivot);
+            });
+
+            const accessoryGroup = new THREE.Group();
+            headGroup.add(accessoryGroup);
+            buildCatAccessoryMesh(accessoryGroup, catData.accessory || 'bell');
+
+            // ---- Legs: stubby with round paws ----
+            const legs = [];
+            [[-0.15, 0.2], [0.15, 0.2], [-0.15, -0.2], [0.15, -0.2]].forEach(([x, z]) => {
+                const leg = new THREE.Group();
+                leg.position.set(x, 0.25, z);
+                const limb = addMesh(leg, new THREE.CylinderGeometry(0.075, 0.068, 0.2, 14), solidMat, 0, -0.1, 0);
+                limb.castShadow = true;
+                addMesh(leg, new THREE.SphereGeometry(0.08, 14, 12), pawMat, 0, -0.2, 0.012, 1, 0.62, 1.2);
+                root.add(leg);
+                legs.push(leg);
+            });
+
+            // ---- Tail: curved fluffy segments ----
+            const tailSegments = [];
+            let parent = bodyPivot;
+            const N = 7;
+            for (let i = 0; i < N; i++) {
+                const seg = new THREE.Group();
+                if (i === 0) { seg.position.set(0, 0.0, -0.34); seg.rotation.x = -1.05; }
+                else { seg.position.set(0, 0.085, 0); seg.rotation.x = 0.16; }
+                const striped = breed.pattern === 'tabby' && i % 2 === 1;
+                const tipDark = breed.pattern === 'siamese' && i > 3;
+                const mat = tipDark ? earMat : (striped ? catMat(breed.stripeColor) : solidMat);
+                const r = (furry ? 0.062 : 0.052) - i * 0.002;
+                addMesh(seg, new THREE.SphereGeometry(r, 12, 10), mat, 0, 0.04, 0, 1, 1.45, 1);
+                parent.add(seg);
+                parent = seg;
+                tailSegments.push(seg);
+            }
+
+            const s = catData.scale || 1.0;
+            root.scale.set(s, s, s);
+
+            return {
+                id: catData.id, data: catData, breed, mesh: root, bodyPivot, headGroup, accessoryGroup, eyes, ears, legs, tailSegments,
+                aiState: 'wander', stateTimer: 2 + Math.random() * 4, moving: false, seed: Math.random() * 10,
+                targetPos: new THREE.Vector3((Math.random() - 0.5) * 7, FLOOR_Y + 0.16, -0.4 + Math.random() * 2.8),
+                walkPhase: Math.random() * 10, blinkTimer: 1 + Math.random() * 3
+            };
+        }
+
+        function buildCatAccessoryMesh(group, accId) {
+            while (group.children.length > 0) group.remove(group.children[0]);
+            const gold = new THREE.MeshStandardMaterial({ color: sc(0xfbbf24), metalness: 0.5, roughness: 0.3 });
+            if (accId === 'sprout') {
+                const green = catMat(0x22c55e, 0.6);
+                addMesh(group, new THREE.CylinderGeometry(0.01, 0.014, 0.12, 8), green, 0, 0.37, 0.02);
+                [-1, 1].forEach(s => { const l = addMesh(group, new THREE.SphereGeometry(0.05, 12, 10), green, s * 0.045, 0.44, 0.02, 1.3, 0.5, 0.7); l.rotation.z = -s * 0.5; });
+            } else if (accId === 'crown') {
+                addMesh(group, new THREE.CylinderGeometry(0.1, 0.085, 0.07, 12), gold, 0, 0.36, 0.02);
+                for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; addMesh(group, new THREE.ConeGeometry(0.025, 0.07, 8), gold, Math.cos(a) * 0.085, 0.43, 0.02 + Math.sin(a) * 0.085); }
+                addMesh(group, new THREE.SphereGeometry(0.018, 8, 8), catMat(0xef4444, 0.3), 0, 0.37, 0.115);
+            } else if (accId === 'bow') {
+                const pink = catMat(0xff4d8d, 0.5);
+                [-1, 1].forEach(s => { const w = addMesh(group, new THREE.ConeGeometry(0.06, 0.11, 12), pink, 0.22 + s * 0.06, 0.28, 0.12); w.rotation.z = -s * Math.PI / 2; });
+                addMesh(group, new THREE.SphereGeometry(0.032, 10, 10), pink, 0.22, 0.28, 0.12);
+            } else if (accId === 'beret') {
+                addMesh(group, new THREE.SphereGeometry(0.2, 20, 14), catMat(0xdc2626, 0.8), 0.04, 0.32, 0.02, 1.0, 0.4, 1.0);
+                addMesh(group, new THREE.SphereGeometry(0.02, 8, 8), catMat(0x7f1d1d), 0.04, 0.42, 0.02);
+            } else { // bell collar
+                const ring = addMesh(group, new THREE.TorusGeometry(0.2, 0.022, 8, 28), catMat(0xe11d48, 0.5), 0, -0.27, 0.06, 1.15, 1.0, 1.0);
+                ring.rotation.x = Math.PI / 2;
+                addMesh(group, new THREE.SphereGeometry(0.045, 14, 12), gold, 0, -0.3, 0.27);
+            }
+        }
+
+        // Poses: standing / sitting / lying on belly / lying on back (sleeping)
+        const CAT_POSES = {
+            stand: { bodyY: 0.4, bodyRX: 0, bodyRZ: 0, headY: 0.3, headRX: 0, headRZ: 0, legY: 0.25, legRZ: 0, fSY: 1, hSY: 1, fRX: 0, hRX: 0, tailRX: -1.05, eye: 1 },
+            sit:   { bodyY: 0.4, bodyRX: -0.5, bodyRZ: 0, headY: 0.3, headRX: 0.45, headRZ: 0, legY: 0.3, legRZ: 0, fSY: 1.2, hSY: 0.7, fRX: 0, hRX: -1.3, tailRX: -1.25, eye: 1 },
+            lie:   { bodyY: 0.25, bodyRX: 0, bodyRZ: 0, headY: 0.27, headRX: 0.12, headRZ: 0, legY: 0.17, legRZ: 0, fSY: 0.5, hSY: 0.3, fRX: -1.4, hRX: 0, tailRX: -1.4, eye: 0.3 },
+            back:  { bodyY: 0.3, bodyRX: 0, bodyRZ: Math.PI, headY: -0.02, headRX: 0, headRZ: Math.PI, legY: 0.5, legRZ: Math.PI, fSY: 0.8, hSY: 0.8, fRX: 0.5, hRX: -0.4, tailRX: -1.5, eye: 0.12 }
+        };
+
+        function animateCatParts(dt, t) {
+            catActors.forEach(a => {
+                if (!a.legs) return;
+                const mv = !!a.moving;
+                const P = CAT_POSES[mv ? 'stand' : (CAT_POSES[a.aiState] ? a.aiState : 'stand')];
+                if (!a.pose) a.pose = Object.assign({}, CAT_POSES.stand);
+                const k = Math.min(1, dt * 4);
+                for (const key in P) a.pose[key] += (P[key] - a.pose[key]) * k;
+                const p = a.pose;
+                if (mv) a.walkPhase += dt * 5.5;
+                const sw = mv ? Math.sin(a.walkPhase) * 0.45 : 0;
+                const resting = !mv && (a.aiState === 'lie' || a.aiState === 'back');
+
+                a.mesh.position.y = FLOOR_Y + 0.03;
+                a.bodyPivot.position.y = p.bodyY + (mv ? Math.abs(Math.sin(a.walkPhase)) * 0.02 : Math.sin(t * (resting ? 1.4 : 2) + a.seed) * (resting ? 0.01 : 0.005));
+                a.bodyPivot.rotation.x = p.bodyRX; a.bodyPivot.rotation.z = p.bodyRZ;
+                a.headGroup.position.y = p.headY;
+                a.headGroup.rotation.x = p.headRX;
+                a.headGroup.rotation.z = p.headRZ + Math.sin(t * 0.9 + a.seed) * (resting ? 0.02 : 0.05);
+
+                a.legs.forEach((l, i) => {
+                    const front = i < 2, ph = (i === 0 || i === 3) ? 1 : -1;
+                    l.position.y = p.legY; l.rotation.z = p.legRZ;
+                    l.scale.y = front ? p.fSY : p.hSY;
+                    l.rotation.x = (front ? p.fRX : p.hRX) + sw * ph;
+                });
+                a.tailSegments.forEach((s, i) => {
+                    if (i === 0) s.rotation.x = p.tailRX;
+                    s.rotation.z = Math.sin(t * (mv ? 3 : (resting ? 0.9 : 2.0)) + i * 0.6 + a.seed) * (0.05 + i * (resting ? 0.015 : 0.03));
+                });
+
+                a.blinkTimer -= dt;
+                let b = 1;
+                if (a.blinkTimer < 0) { b = 0.1; if (a.blinkTimer < -0.12) a.blinkTimer = 2 + Math.random() * 4; }
+                const open = Math.max(0.1, Math.min(b, p.eye));
+                a.eyes.forEach(e => { e.scale.y = open; });
+            });
+        }
+
+        /********************************************************************
+         * 5. CAT AI & RENDER ANIMATION LOOP
+         ********************************************************************/
+        function updateCatsAI(dt) {
+            const effDt = dt * (state.gameSpeed === 0 ? 0 : (state.gameSpeed === 3 ? 2.2 : 1.0));
+            if (effDt <= 0) return;
+
+            catActors.forEach(actor => {
+                actor.stateTimer -= effDt;
+                if (actor.stateTimer <= 0) {
+                    const r = Math.random();
+                    actor.aiState = r < 0.35 ? 'wander' : r < 0.6 ? 'sit' : r < 0.82 ? 'lie' : 'back';
+                    actor.stateTimer = actor.aiState === 'wander' ? 5 + Math.random() * 4
+                        : actor.aiState === 'sit' ? 6 + Math.random() * 6 : 10 + Math.random() * 10;
+                    actor.targetPos.set((Math.random() - 0.5) * 7, FLOOR_Y + 0.16, -0.4 + Math.random() * 2.8);
+                }
+
+                actor.moving = false;
+                if (actor.aiState === 'wander') {
+                    const pos = actor.mesh.position;
+                    const dx = actor.targetPos.x - pos.x;
+                    const dz = actor.targetPos.z - pos.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.15) {
+                        actor.moving = true;
+                        pos.x += (dx / dist) * 0.42 * effDt;
+                        pos.z += (dz / dist) * 0.42 * effDt;
+                        { const ty = Math.atan2(dx, dz); let d = ty - actor.mesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); actor.mesh.rotation.y += d * Math.min(1, effDt * 3); }
+                    }
+                }
+            });
+            separateCats();
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            const dt = 0.016;
+            updateCatsAI(dt);
+            animateCatParts(dt, performance.now() / 1000);
+            animateStreet(dt);
+            renderer.render(scene, camera);
+        }
+
+        /********************************************************************
+         * 6. UI INTERACTION, MODALS & SHOP
+         ********************************************************************/
+        function updateUI() {
+            document.getElementById('coin-count').textContent = state.coins.toLocaleString();
+            document.getElementById('room-name-display').textContent = state.roomName;
+            document.getElementById('room-sub-info').textContent = `${BOX_W * 16} lít • ${state.cats.length} bé mèo`;
+            document.getElementById('stat-hunger-bar').style.width = state.hunger + '%';
+            document.getElementById('stat-happy-bar').style.width = state.happiness + '%';
+            document.getElementById('badge-food').textContent = state.foodStock;
+            updateInspectorPanel();
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            if (id === 'shop-modal') renderShop('cats');
+            if (id === 'breed-modal') renderCatsRoster();
+            if (id === 'decor-modal') renderDecorList();
+            if (id === 'couple-modal') initCoupleSelects();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function switchShopTab(tab) {
+            ['cats', 'decor', 'food'].forEach(t => {
+                document.getElementById(`shop-tab-${t}`).className = `cozy-btn px-4 py-1.5 text-xs font-extrabold ${t === tab ? 'bg-amber-200' : 'bg-slate-100'}`;
+            });
+            renderShop(tab);
+        }
+
+        function renderShop(tab) {
+            const area = document.getElementById('shop-content-area');
+            area.innerHTML = '';
+            if (tab === 'cats') {
+                CAT_BREEDS.forEach(breed => {
+                    area.innerHTML += `
+                        <div class="cozy-card p-3 flex justify-between items-center bg-white">
+                            <div>
+                                <div class="font-black text-sm">${breed.name}</div>
+                                <div class="text-[11px] font-bold text-slate-500">${breed.desc}</div>
+                                <div class="text-xs font-black text-amber-600 mt-1">🪙 ${breed.price}</div>
+                            </div>
+                            <button onclick="buyCat('${breed.id}', ${breed.price})" class="cozy-btn px-3 py-1.5 bg-emerald-400 text-white font-black text-xs">Nhận nuôi</button>
+                        </div>`;
+                });
+            } else if (tab === 'decor') {
+                DECOR_CATALOG.forEach(dec => {
+                    const owned = state.ownedDecor.includes(dec.id);
+                    area.innerHTML += `
+                        <div class="cozy-card p-3 flex justify-between items-center bg-white">
+                            <div>
+                                <div class="font-black text-sm">${dec.name}</div>
+                                <div class="text-[11px] font-bold text-slate-500">+${dec.score} điểm phòng</div>
+                                <div class="text-xs font-black text-amber-600 mt-1">🪙 ${dec.price}</div>
+                            </div>
+                            <button onclick="buyDecor('${dec.id}', ${dec.price})" class="cozy-btn px-3 py-1.5 ${owned ? 'bg-slate-300' : 'bg-emerald-400 text-white'} font-black text-xs" ${owned ? 'disabled' : ''}>${owned ? 'Đã có' : 'Mua'}</button>
+                        </div>`;
+                });
+            } else if (tab === 'food') {
+                area.innerHTML += `
+                    <div class="cozy-card p-3 flex justify-between items-center bg-white">
+                        <div>
+                            <div class="font-black text-sm">Hũ Thức Ăn Hạt Thơm Ngon (x5)</div>
+                            <div class="text-xs font-black text-amber-600 mt-1">🪙 50</div>
+                        </div>
+                        <button onclick="buyFood()" class="cozy-btn px-3 py-1.5 bg-emerald-400 text-white font-black text-xs">Mua ngay</button>
+                    </div>`;
+            }
+        }
+
+        function buyCat(breedId, price) {
+            if (state.coins < price) { alert('Không đủ xu!'); return; }
+            state.coins -= price;
+            const breed = CAT_BREEDS.find(b => b.id === breedId);
+            state.cats.push({ id: 'c_' + Date.now(), name: breed.name.split(' ')[0], breedId, hunger: 100, love: 100, scale: 1.0, accessory: 'bell' });
+            playCoinSound(); rebuildRoomDecorAndCats(); updateUI(); closeModal('shop-modal');
+        }
+
+        function buyDecor(decorId, price) {
+            if (state.coins < price) { alert('Không đủ xu!'); return; }
+            state.coins -= price; state.ownedDecor.push(decorId); state.activeDecor.push(decorId);
+            playCoinSound(); rebuildRoomDecorAndCats(); updateUI(); renderShop('decor');
+        }
+
+        function buyFood() {
+            if (state.coins < 50) { alert('Không đủ xu!'); return; }
+            state.coins -= 50; state.foodStock += 5; playCoinSound(); updateUI();
+        }
+
+        function renderCatsRoster() {
+            const list = document.getElementById('cats-roster-list');
+            list.innerHTML = '';
+            state.cats.forEach(c => {
+                const b = CAT_BREEDS.find(x => x.id === c.breedId);
+                list.innerHTML += `
+                    <div class="cozy-card p-3 flex justify-between items-center bg-white">
+                        <div>
+                            <div class="font-black text-sm">${c.name} <span class="text-xs font-bold text-slate-500">(${b.name})</span></div>
+                            <div class="text-xs font-bold text-emerald-600">No bụng: ${Math.round(c.hunger)}%</div>
+                        </div>
+                        <button onclick="selectCatForInspector('${c.id}')" class="cozy-btn px-3 py-1 text-xs font-extrabold bg-amber-100">Chọn tương tác</button>
+                    </div>`;
+            });
+        }
+
+        function renderDecorList() {
+            const list = document.getElementById('decor-toggle-list');
+            list.innerHTML = '';
+            DECOR_CATALOG.forEach(dec => {
+                const active = state.activeDecor.includes(dec.id);
+                list.innerHTML += `
+                    <div class="cozy-card p-3 flex justify-between items-center bg-white">
+                        <div class="font-black text-sm">${dec.name}</div>
+                        <button onclick="toggleDecor('${dec.id}')" class="cozy-btn px-3 py-1 text-xs font-extrabold ${active ? 'bg-emerald-400 text-white' : 'bg-slate-200'}">${active ? 'Đang bày' : 'Cất kho'}</button>
+                    </div>`;
+            });
+        }
+
+        function toggleDecor(decId) {
+            if (state.activeDecor.includes(decId)) {
+                state.activeDecor = state.activeDecor.filter(id => id !== decId);
+            } else {
+                state.activeDecor.push(decId);
+            }
+            rebuildRoomDecorAndCats(); renderDecorList(); saveGameState();
+        }
+
+        function initCoupleSelects() {
+            const s1 = document.getElementById('couple-cat-1');
+            const s2 = document.getElementById('couple-cat-2');
+            s1.innerHTML = ''; s2.innerHTML = '';
+            state.cats.forEach(c => {
+                s1.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                s2.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+        }
+
+        function executeBreeding() {
+            if (state.coins < 100) { alert('Cần 100 xu để ghép đôi!'); return; }
+            state.coins -= 100;
+            const randomBreed = CAT_BREEDS[Math.floor(Math.random() * CAT_BREEDS.length)];
+            state.cats.push({ id: 'baby_' + Date.now(), name: 'Boss Con', breedId: randomBreed.id, hunger: 100, love: 100, scale: 0.75, accessory: 'bow' });
+            playCoinSound(); rebuildRoomDecorAndCats(); updateUI(); closeModal('couple-modal');
+            alert('🎉 Chúc mừng vợ chồng bạn đã chào đón một bé mèo con siêu đáng yêu!');
+        }
+
+        function actionFeed() {
+            if (state.foodStock <= 0) { alert('Hết thức ăn rồi! Hãy vào Cửa hàng mua thêm nhé.'); return; }
+            state.foodStock--; state.hunger = Math.min(100, state.hunger + 15);
+            state.stats.fedToday++; playMeowSound(1.1); updateUI(); saveGameState();
+        }
+
+        function actionClean() {
+            state.cleanliness = 100; state.stats.cleanedToday++; playCoinSound(); updateUI(); saveGameState();
+        }
+
+        function actionBrush() {
+            state.happiness = Math.min(100, state.happiness + 10); playMeowSound(1.2); updateUI(); saveGameState();
+        }
+
+        let laserPointerActive = false;
+        function toggleLaserPointer() {
+            laserPointerActive = !laserPointerActive;
+            document.getElementById('laser-dot').style.display = laserPointerActive ? 'block' : 'none';
+            laserActive = laserPointerActive;
+        }
+
+        function onPointerMove(e) {
+            if (!laserPointerActive) return;
+            const dot = document.getElementById('laser-dot');
+            dot.style.left = e.clientX + 'px';
+            dot.style.top = e.clientY + 'px';
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+            const target = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, target);
+            laserTarget3D.copy(target);
+        }
+
+        function onPointerDown(e) {
+            if (e.target.closest('button') || e.target.closest('.cozy-card')) return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(roomGroup.children, true);
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while (obj.parent && obj.parent !== roomGroup) obj = obj.parent;
+                if (obj.userData && obj.userData.catId) {
+                    selectedCatId = obj.userData.catId;
+                    updateInspectorPanel();
+                }
+            }
+        }
+
+        function selectCatForInspector(catId) {
+            selectedCatId = catId; closeModal('breed-modal'); updateInspectorPanel();
+        }
+
+        function updateInspectorPanel() {
+            const panel = document.getElementById('cat-inspector');
+            const actor = catActors.find(a => a.id === selectedCatId);
+            if (!actor) { panel.classList.add('hidden'); return; }
+            panel.classList.remove('hidden');
+            document.getElementById('insp-name').textContent = actor.data.name;
+            document.getElementById('insp-breed').textContent = actor.breed.name;
+            document.getElementById('insp-hunger').textContent = Math.round(actor.data.hunger) + '%';
+        }
+
+        function closeInspector() { selectedCatId = null; document.getElementById('cat-inspector').classList.add('hidden'); }
+        function petSelectedCat() { state.stats.pettedToday++; playMeowSound(1.2); updateUI(); }
+        function feedSelectedCatTreat() { state.coins += 5; playCoinSound(); updateUI(); }
+        function cycleSelectedCatAccessory() {
+            const actor = catActors.find(a => a.id === selectedCatId);
+            if (!actor) return;
+            const accs = CAT_ACCESSORIES.map(a => a.id);
+            const nextAcc = accs[(accs.indexOf(actor.data.accessory || 'bell') + 1) % accs.length];
+            actor.data.accessory = nextAcc;
+            buildCatAccessoryMesh(actor.accessoryGroup, nextAcc);
+            playCoinSound();
+        }
+
+        function toggleLamp() {
+            state.lampMode = state.lampMode === 'on' ? 'off' : 'on';
+            document.getElementById('lamp-text').textContent = state.lampMode === 'on' ? 'Đèn bật (tay)' : 'Đèn tắt';
+        }
+
+        function toggleNightMode() {
+            state.nightMode = !state.nightMode;
+            scene.background.set(state.nightMode ? 0x0f172a : 0xfcefe3); setNightScene(state.nightMode);
+        }
+
+        function setGameSpeed(spd) { state.gameSpeed = spd; }
+        function calculateRoomScores() { return { total: 94, sHealth: 28, sPlant: 18, sCat: 18, sDecor: 15, sStyle: 15 }; }
+        function renameRoomPrompt() { const n = prompt('Nhập tên mới cho phòng mèo:', state.roomName); if (n) { state.roomName = n; updateUI(); saveGameState(); } }
+        function renameSelectedCat() {
+            const actor = catActors.find(a => a.id === selectedCatId);
+            if (!actor) return;
+            const n = prompt('Đổi tên bé mèo:', actor.data.name);
+            if (n) { actor.data.name = n; updateInspectorPanel(); saveGameState(); }
+        }
+        function claimMainQuest() { state.coins += 150; state.mainQuestIdx++; updateUI(); saveGameState(); alert('🎁 Đã nhận thưởng nhiệm vụ thành công!'); }
+        function claimOrderReward() { state.coins += 350; updateUI(); saveGameState(); alert('🎉 Đã hoàn thành đơn khách hàng Cô Ngọc!'); }
+        function downloadSnapshot() { alert('📸 Đã lưu ảnh chụp căn phòng mèo kỷ niệm cho vợ!'); closeModal('camera-modal'); }
+        function onWindowResize() { fitCamera(); renderer.setSize(window.innerWidth, window.innerHeight); }
+
+        window.onload = function () {
+            loadGameState();
+            applySidePanelStates();
+            initThreeScene();
+            updateUI();
+            requestAnimationFrame(animateLoop);
+        };
+    </script>
+</body>
+</html>

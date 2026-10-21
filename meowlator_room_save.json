@@ -1,0 +1,65 @@
+{
+  "coins": 150,
+  "roomName": "Phòng Mèo Của Qwan & Lina 💕",
+  "gameSpeed": 1,
+  "lampMode": "on",
+  "nightMode": false,
+  "leftPanelOpen": false,
+  "rightPanelOpen": false,
+  "hunger": 70,
+  "happiness": 85,
+  "cleanliness": 100,
+  "foodStock": 10,
+  "foodBowlPercent": 0,
+  "litterCleanliness": 100,
+  "lastGrowthCheck": 1792615817787,
+  "lastPetTime": 0,
+  "lastBrushTime": 0,
+  "wallStyle": "stripes",
+  "floorStyle": "oak",
+  "ownedDecor": [
+    "food_station",
+    "litter_box",
+    "cat_tree",
+    "cat_wheel",
+    "cardboard_box",
+    "catnip_pot"
+  ],
+  "activeDecor": [
+    "food_station",
+    "litter_box",
+    "cat_tree",
+    "cat_wheel",
+    "cardboard_box",
+    "catnip_pot"
+  ],
+  "decorPositions": {
+    "food_station": { "x": 1.4, "z": -1, "rot": 0 },
+    "litter_box": { "x": 3.3, "z": -0.6, "rot": -0.3 },
+    "cat_tree": { "x": -3.2, "z": -2, "rot": 0 },
+    "cat_wheel": { "x": -3, "z": -0.4, "rot": 0 },
+    "cardboard_box": { "x": -0.8, "z": 0.8, "rot": 0.2 },
+    "catnip_pot": { "x": 2.2, "z": -1.2, "rot": 0 }
+  },
+  "mainQuestIdx": 0,
+  "stats": {
+    "fedToday": 0,
+    "cleanedToday": 0,
+    "brushedToday": 0,
+    "pettedToday": 0
+  },
+  "cats": [
+    {
+      "id": "c1",
+      "name": "Miu Cam",
+      "breedId": "ginger",
+      "hunger": 65,
+      "happiness": 85,
+      "love": 85,
+      "level": 1,
+      "growthExp": 0,
+      "scale": 0.55,
+      "accessory": "bell"
+    }
+  ]
+}

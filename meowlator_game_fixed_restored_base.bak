@@ -1,0 +1,3094 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MeowLator - Căn Phòng Mèo Của Lina & Qwan 💕</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN for 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts: Nunito, Inter & Dancing Script for Lina's Rug -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;600;700;900&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #fffbf5;
+            --border-dark: #271c19;
+            --card-bg: rgba(255, 255, 255, 0.96);
+        }
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Nunito', 'Inter', sans-serif;
+            background-color: #fcefe3;
+            color: var(--border-dark);
+            user-select: none;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .cozy-card {
+            background-color: var(--bg-cream);
+            border: 3px solid var(--border-dark);
+            box-shadow: 4px 4px 0px var(--border-dark);
+            border-radius: 1.25rem;
+        }
+        .cozy-pill {
+            background-color: var(--bg-cream);
+            border: 2.5px solid var(--border-dark);
+            box-shadow: 0 3px 0 var(--border-dark);
+            border-radius: 9999px;
+        }
+        .cozy-btn {
+            border: 2.5px solid var(--border-dark);
+            box-shadow: 0 3px 0 var(--border-dark);
+            border-radius: 1rem;
+            transition: all 0.12s ease;
+            cursor: pointer;
+        }
+        .cozy-btn:hover {
+            transform: translateY(-1.5px);
+            box-shadow: 0 4.5px 0 var(--border-dark);
+        }
+        .cozy-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--border-dark);
+        }
+        .stat-bar-track {
+            background-color: #e5e7eb;
+            border: 2px solid var(--border-dark);
+            border-radius: 9999px;
+            height: 12px;
+            overflow: hidden;
+        }
+        .stat-bar-fill {
+            background: linear-gradient(90deg, #34d399, #10b981);
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.35s ease;
+        }
+        .cozy-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .cozy-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        #laser-dot {
+            position: fixed;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 10%, #ff0044 50%, rgba(255,0,68,0) 100%);
+            box-shadow: 0 0 14px #ff0044, 0 0 28px #ff0044;
+            pointer-events: none;
+            z-index: 40;
+            display: none;
+            transform: translate(-50%, -50%);
+        }
+        .side-panel-wrapper {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+        }
+        .left-collapsed {
+            transform: translateX(-120%);
+            opacity: 0;
+            pointer-events: none !important;
+        }
+        .right-collapsed {
+            transform: translateX(120%);
+            opacity: 0;
+            pointer-events: none !important;
+        }
+        .panel-toggle-tab {
+            background-color: var(--bg-cream);
+            border: 2.5px solid var(--border-dark);
+            box-shadow: 0 3px 0 var(--border-dark), 0 4px 12px rgba(0,0,0,0.15);
+            color: var(--border-dark);
+            cursor: pointer;
+        }
+        @keyframes floatUpFade {
+            0% { opacity: 0; transform: translateY(12px) scale(0.9); }
+            15% { opacity: 1; transform: translateY(0px) scale(1); }
+            80% { opacity: 1; transform: translateY(-24px) scale(1.02); }
+            100% { opacity: 0; transform: translateY(-40px) scale(0.9); }
+        }
+        .floating-bubble {
+            animation: floatUpFade 2.5s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .hud-hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateY(24px) scale(0.96);
+            transition: all 0.25s ease;
+        }
+        .hud-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            transition: all 0.25s ease;
+        }
+
+        /* PC DESKTOP SCALING: LARGE, CRISP & HIGHLY LEGIBLE HUDS */
+        @media (min-width: 768px) {
+            .desktop-scale-dock {
+                padding: 0.75rem 1.25rem !important;
+                gap: 1.25rem !important;
+            }
+            .desktop-scale-btn {
+                padding: 0.5rem 0.75rem !important;
+            }
+            .desktop-scale-icon {
+                width: 3.5rem !important;
+                height: 3.5rem !important;
+                font-size: 1.75rem !important;
+            }
+            .desktop-scale-text {
+                font-size: 0.875rem !important;
+            }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between p-2 sm:p-4 relative select-none overflow-hidden">
+
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <!-- Laser Dot for Playing with Cats -->
+    <div id="laser-dot"></div>
+
+    <!-- Confetti Canvas Layer -->
+    <canvas id="confetti-canvas" class="absolute inset-0 pointer-events-none z-40"></canvas>
+
+    <!-- FLOATING NOTIFICATION FX CONTAINER -->
+    <div id="floating-fx-layer" class="absolute inset-0 pointer-events-none z-30 overflow-hidden flex flex-col items-center justify-start pt-16 sm:pt-20 gap-2"></div>
+
+    <!-- MINIMAL FLOATING HUD RE-OPEN BUTTON -->
+    <button id="hud-show-btn" onclick="toggleHUDVisibility()" class="hidden fixed top-3 right-3 z-50 cozy-pill px-4 py-2 bg-amber-100 hover:bg-amber-200 border-2 border-slate-900 shadow-2xl flex items-center gap-2 text-xs sm:text-sm font-black">
+        <span class="text-base sm:text-lg">👁️</span><span>Hiện Giao Diện</span>
+    </button>
+
+    <!-- TOP BAR: USERS (LINA & QWAN), REAL-TIME HCM WEATHER, COINS, HUD HIDE TOGGLE -->
+    <header id="main-header" class="hud-visible relative z-20 w-full flex items-center justify-between gap-2 max-w-7xl mx-auto px-1">
+        <!-- Current User Profile & Time/Weather -->
+        <div class="flex items-center gap-2">
+            <!-- User Login Profile Badge -->
+            <button onclick="promptUserLoginSwitch()" class="cozy-pill px-3.5 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm font-black bg-pink-100 hover:bg-pink-200 text-pink-900 shadow-sm" title="Nhấp để chuyển người chơi (Lina / Qwan)">
+                <span class="text-sm sm:text-base">💕</span>
+                <span id="current-user-name">Lina</span>
+                <span class="text-[10px] text-pink-600 bg-white/80 px-1.5 py-0.5 rounded-full border border-pink-300">Đổi</span>
+            </button>
+
+            <!-- Real-Time & Weather HCM Badge -->
+            <div id="realtime-display" class="cozy-pill px-3.5 py-1.5 flex items-center gap-2 text-xs sm:text-sm font-black shadow-sm">
+                <span>☀️</span> <span>32°C TP.HCM</span> • <span>12:00</span>
+            </div>
+
+            <!-- Online Sync Status Indicator -->
+            <div id="sync-status-badge" class="hidden sm:flex cozy-pill px-2.5 py-1 items-center gap-1.5 text-[11px] font-extrabold text-emerald-700 bg-emerald-50" title="Đồng bộ 2 máy giữa Lina & Qwan">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>2 Máy Nuôi Chung</span>
+            </div>
+        </div>
+
+        <!-- Right Side: Coins & HUD Toggle -->
+        <div class="flex items-center gap-2">
+            <div class="cozy-pill px-4 py-1.5 flex items-center gap-2 text-xs sm:text-base font-black bg-amber-50 shadow-sm">
+                <span class="text-amber-500 text-base sm:text-lg">🪙</span>
+                <span id="coin-count" class="text-amber-700 tracking-wide font-black">1,470</span>
+            </div>
+            <button onclick="toggleHUDVisibility()" class="cozy-btn p-2 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-black bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1" title="Ẩn giao diện để ngắm trọn vẹn căn phòng mèo">
+                <span>👁️</span><span class="hidden sm:inline">Ẩn Hub</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MIDDLE AREA: SIDE TABS & CORNER PANELS (WON'T BLOCK THE CAT) -->
+    <div id="middle-area" class="hud-visible relative z-20 flex-1 flex items-start justify-between gap-3 my-2 overflow-hidden pointer-events-none">
+
+        <!-- FLOATING REOPEN TAB FOR LEFT PANEL -->
+        <button id="left-reopen-tab" onclick="toggleSidePanel('left')" class="panel-toggle-tab fixed left-0 top-1/2 -translate-y-1/2 z-30 rounded-r-2xl border-l-0 px-3 py-3 flex flex-col items-center gap-1 pointer-events-auto shadow-md" title="Mở bảng Chỉ số">
+            <span class="text-lg">🐾</span>
+            <span class="text-xs font-black [writing-mode:vertical-lr]">Chỉ số</span>
+            <span class="text-xs font-black text-slate-500">▶</span>
+        </button>
+
+        <!-- LEFT PANEL: Room Status -->
+        <div id="left-panel-card" class="side-panel-wrapper left-collapsed cozy-card w-64 sm:w-72 max-h-[78vh] flex flex-col p-4 pointer-events-auto overflow-y-auto cozy-scroll relative shadow-2xl">
+            <div class="flex items-start justify-between border-b-2 border-slate-200 pb-2.5 gap-1">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-1">
+                        <span id="room-name-display" onclick="renameRoomPrompt()" class="font-black text-sm sm:text-base cursor-pointer hover:underline truncate" title="Đổi tên phòng">Phòng Mèo Của Vợ</span>
+                        <button onclick="renameRoomPrompt()" class="text-xs text-slate-400">✏️</button>
+                    </div>
+                    <div id="room-sub-info" class="text-xs font-bold text-slate-500">1 bé mèo cưng</div>
+                </div>
+                <button onclick="toggleSidePanel('left')" class="cozy-btn px-2.5 py-1 text-xs font-black bg-amber-100">◀ Ẩn</button>
+            </div>
+
+            <div class="mt-3 space-y-2.5 text-xs sm:text-sm font-extrabold">
+                <div>
+                    <div class="flex justify-between items-center text-xs mb-1">
+                        <span>🥫 No bụng phòng</span>
+                        <span id="stat-hunger-val" class="text-emerald-600 font-black">90%</span>
+                    </div>
+                    <div class="stat-bar-track"><div id="stat-hunger-bar" class="stat-bar-fill" style="width: 90%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center text-xs mb-1">
+                        <span>🐱 Mèo thư thái</span>
+                        <span id="stat-happy-val" class="text-emerald-600 font-black">88%</span>
+                    </div>
+                    <div class="stat-bar-track"><div id="stat-happy-bar" class="stat-bar-fill" style="width: 88%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center text-xs mb-1">
+                        <span>✨ Sạch sẽ</span>
+                        <span id="stat-clean-val" class="text-emerald-600 font-black">100%</span>
+                    </div>
+                    <div class="stat-bar-track"><div id="stat-clean-bar" class="stat-bar-fill" style="width: 100%"></div></div>
+                </div>
+            </div>
+
+            <div class="mt-3 pt-2.5 border-t-2 border-slate-200 text-xs font-bold text-slate-600 space-y-1">
+                <div class="flex justify-between items-center">
+                    <span>ĐIỂM PHÒNG: <strong class="text-slate-800 text-sm">88/100</strong></span>
+                    <span class="text-amber-600 font-black">≈ 120🪙/NGÀY</span>
+                </div>
+                <div class="text-[11px] text-pink-600 italic">Thảm nhung ghi tên Lina 💕</div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE: REOPEN TAB & QUEST CARD -->
+        <button id="right-reopen-tab" onclick="toggleSidePanel('right')" class="panel-toggle-tab fixed right-0 top-1/2 -translate-y-1/2 z-30 rounded-l-2xl border-r-0 px-3 py-3 flex flex-col items-center gap-1 pointer-events-auto shadow-md" title="Mở Nhiệm vụ">
+            <span class="text-lg">✨</span>
+            <span class="text-xs font-black [writing-mode:vertical-lr]">Nhiệm vụ</span>
+            <span class="text-xs font-black text-slate-500">◀</span>
+        </button>
+
+        <div id="right-panel-card" class="side-panel-wrapper right-collapsed cozy-card w-64 sm:w-72 max-h-[78vh] flex flex-col p-4 pointer-events-auto overflow-y-auto cozy-scroll relative shadow-2xl">
+            <div class="flex items-center justify-between border-b-2 border-slate-200 pb-2.5">
+                <div class="font-black text-sm sm:text-base flex items-center gap-1.5"><span>✨</span><span>Mục tiêu nuôi mèo</span></div>
+                <button onclick="toggleSidePanel('right')" class="cozy-btn px-2.5 py-1 text-xs font-black bg-amber-100">Ẩn ▶</button>
+            </div>
+            <div class="mt-3 text-xs sm:text-sm space-y-1.5">
+                <div id="main-quest-step" class="text-[11px] font-black text-slate-400 uppercase">NHIỆM VỤ 1/5</div>
+                <div id="main-quest-title" class="font-black text-sm text-slate-800">Nuôi Boss Lớn Lên</div>
+                <div id="main-quest-desc" class="text-xs font-bold text-slate-600">Nuôi dưỡng bé mèo đạt Cấp 2 (Mới Lớn)</div>
+                <div class="flex items-center gap-2 mt-2">
+                    <div class="flex-1 stat-bar-track"><div id="main-quest-bar" class="stat-bar-fill" style="width: 20%"></div></div>
+                    <span id="main-quest-prog" class="text-xs font-black">1/2</span>
+                    <span id="main-quest-reward" class="text-xs font-black text-amber-600">🪙150</span>
+                </div>
+                <button id="claim-main-quest-btn" onclick="claimMainQuest()" class="hidden w-full mt-2 cozy-btn py-2 bg-emerald-400 text-white font-black text-xs shadow-md">
+                    🎁 Nhận thưởng nhiệm vụ!
+                </button>
+            </div>
+        </div>
+
+        <!-- CAT INSPECTOR POPUP (COMPACT AT TOP-RIGHT, NEVER BLOCKS THE 3D CAT IN CENTER) -->
+        <div id="cat-inspector" class="hidden fixed top-16 right-3 sm:right-6 z-30 cozy-card p-3.5 sm:p-4 w-72 sm:w-80 pointer-events-auto shadow-2xl bg-[#fffbf5]/95 backdrop-blur-md">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                    <span id="insp-emoji" class="text-2xl sm:text-3xl">🐱</span>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="insp-name" class="font-black text-sm sm:text-base">Miu Cam</span>
+                            <button onclick="renameSelectedCat()" class="text-xs text-slate-400 hover:text-slate-700">✏️</button>
+                        </div>
+                        <div id="insp-breed" class="text-xs font-bold text-slate-500">Mèo Cam Mướp</div>
+                    </div>
+                </div>
+                <button onclick="closeInspector()" class="text-xs font-black px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300">✕</button>
+            </div>
+
+            <!-- LEVEL & TIME-BASED GROWTH PROGRESS -->
+            <div class="mb-2.5 p-2.5 bg-gradient-to-r from-pink-50 to-amber-50 rounded-2xl border border-pink-200">
+                <div class="flex items-center justify-between text-xs">
+                    <span id="insp-level-badge" class="px-2.5 py-0.5 rounded-full bg-pink-500 text-white font-black text-xs shadow-sm">🍼 Cấp 1: Bé Con</span>
+                    <span id="insp-growth-val" class="font-black text-pink-600">Lớn: 20%</span>
+                </div>
+                <div class="stat-bar-track mt-1.5 bg-pink-100">
+                    <div id="insp-growth-bar" class="stat-bar-fill bg-gradient-to-r from-pink-400 to-amber-400" style="width: 20%"></div>
+                </div>
+                <div id="insp-growth-hint" class="text-[11px] font-bold text-slate-500 mt-1 flex justify-between">
+                    <span>Lớn tự nhiên (~10h lên Cấp 3)</span>
+                    <span class="text-emerald-600 font-black">Đang online trông nom</span>
+                </div>
+            </div>
+
+            <!-- STATS -->
+            <div class="text-xs font-bold space-y-1 mb-2.5 bg-amber-50/80 p-2 rounded-xl border border-slate-300">
+                <div class="flex justify-between"><span>No bụng:</span><span id="insp-hunger" class="text-emerald-600 font-extrabold">90%</span></div>
+                <div class="flex justify-between"><span>Thân thiết:</span><span id="insp-love" class="text-rose-500 font-extrabold">85% 💕</span></div>
+                <div class="flex justify-between"><span>Phụ kiện:</span><span id="insp-hat" class="text-amber-600 font-extrabold">Chuông Vàng</span></div>
+            </div>
+
+            <!-- QUICK CARE BUTTONS (WITH COOLDOWNS & LIMITS) -->
+            <div class="grid grid-cols-4 gap-1.5">
+                <button onclick="petSelectedCat()" id="btn-pet-action" class="cozy-btn py-1.5 text-xs font-black bg-pink-100 hover:bg-pink-200">👋 Vuốt</button>
+                <button onclick="openFeedingModal()" class="cozy-btn py-1.5 text-xs font-black bg-amber-100 hover:bg-amber-200">🥫 Ăn</button>
+                <button onclick="actionBrush()" id="btn-brush-action" class="cozy-btn py-1.5 text-xs font-black bg-teal-100 hover:bg-teal-200">🪮 Chải</button>
+                <button onclick="cycleSelectedCatAccessory()" class="cozy-btn py-1.5 text-xs font-black bg-purple-100 hover:bg-purple-200">🎀 Mũ</button>
+            </div>
+
+            <!-- ON-DEMAND EMOTE COMMAND BAR -->
+            <div class="mt-2.5 pt-2 border-t border-slate-200">
+                <div class="text-[10px] font-black uppercase text-slate-400 mb-1">LỆNH CHO MÈO LÀM THEO:</div>
+                <div class="grid grid-cols-3 gap-1 text-[11px] font-black">
+                    <button onclick="commandCatEmote('sleep')" class="cozy-btn py-1 bg-indigo-50 hover:bg-indigo-100">😴 Đi ngủ</button>
+                    <button onclick="commandCatEmote('wheel')" class="cozy-btn py-1 bg-cyan-50 hover:bg-cyan-100">🏃 Bánh xe</button>
+                    <button onclick="commandCatEmote('tree')" class="cozy-btn py-1 bg-amber-50 hover:bg-amber-100">🌳 Leo tháp</button>
+                    <button onclick="commandCatEmote('box')" class="cozy-btn py-1 bg-orange-50 hover:bg-orange-100">📦 Chui hộp</button>
+                    <button onclick="commandCatEmote('flip')" class="cozy-btn py-1 bg-pink-50 hover:bg-pink-100">🤸 Nhào lộn</button>
+                    <button onclick="commandCatEmote('come')" class="cozy-btn py-1 bg-emerald-50 hover:bg-emerald-100">🐾 Lại đây</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DECOR EDIT MODE OVERLAY -->
+    <div id="decor-edit-banner" class="hidden fixed top-14 left-1/2 -translate-x-1/2 z-40 cozy-pill px-4 py-1.5 bg-amber-100/95 border-2 border-slate-900 shadow-2xl flex items-center gap-2 max-w-[95vw]">
+        <span class="text-base sm:text-lg">🛠️</span>
+        <span class="text-xs sm:text-sm font-black text-slate-800 truncate">Sắp Đặt Phòng: Kéo chuột trên sàn hoặc bấm nút để chuyển đồ</span>
+        <button onclick="exitDecorEditMode()" class="cozy-btn px-3 py-1 text-xs font-black bg-emerald-400 text-white shrink-0">Xong</button>
+    </div>
+
+    <div id="decor-edit-widget" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-40 cozy-card p-2.5 sm:p-3 flex flex-wrap items-center justify-center gap-2 shadow-2xl bg-[#fffbf5] border-2 border-slate-900 max-w-[96vw]">
+        <div class="flex items-center gap-1.5">
+            <span class="text-xs font-black text-slate-500">Chọn đồ:</span>
+            <select id="decor-picker-select" onchange="onDecorSelectChanged()" class="cozy-pill px-2.5 py-1 text-xs font-black bg-white">
+            </select>
+        </div>
+        <div class="flex items-center gap-1">
+            <button onclick="nudgeSelectedDecor(-0.35, 0)" class="cozy-btn px-2.5 py-1 text-xs font-black bg-amber-100">⬅️ Trái</button>
+            <button onclick="nudgeSelectedDecor(0.35, 0)" class="cozy-btn px-2.5 py-1 text-xs font-black bg-amber-100">➡️ Phải</button>
+            <button onclick="nudgeSelectedDecor(0, -0.35)" class="cozy-btn px-2.5 py-1 text-xs font-black bg-amber-100">⬆️ Sâu</button>
+            <button onclick="nudgeSelectedDecor(0, 0.35)" class="cozy-btn px-2.5 py-1 text-xs font-black bg-amber-100">⬇️ Trước</button>
+            <button onclick="rotateSelectedDecor()" class="cozy-btn px-2.5 py-1 text-xs font-black bg-purple-100">🔄 Xoay</button>
+            <button onclick="toggleSelectedDecorActive()" id="decor-toggle-btn" class="cozy-btn px-2.5 py-1 text-xs font-black bg-rose-100">📦 Cất</button>
+        </div>
+        <button onclick="exitDecorEditMode()" class="cozy-btn px-3.5 py-1.5 text-xs font-black bg-emerald-400 text-white">
+            ✅ Hoàn tất
+        </button>
+    </div>
+
+    <!-- STREAMLINED BOTTOM DOCK (SCALED LARGER FOR PC DESKTOP USERS) -->
+    <footer id="main-footer" class="hud-visible relative z-20 w-full max-w-5xl mx-auto flex items-center justify-center gap-2 px-1 pb-1">
+        <div class="cozy-card px-2.5 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-4 w-full overflow-x-auto cozy-scroll shadow-xl desktop-scale-dock">
+            <!-- 1. Cho ăn -->
+            <button onclick="openFeedingModal()" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Cho mèo ăn">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">🥫</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Cho ăn</span>
+                <span id="badge-food" class="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full border border-slate-900 flex items-center justify-center">19</span>
+            </button>
+
+            <!-- 2. Dọn cát -->
+            <button onclick="openLitterModal()" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Dọn chậu cát">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-cyan-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">🧹</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Dọn cát</span>
+            </button>
+
+            <!-- 3. Chải lông -->
+            <button onclick="actionBrush()" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Chải lông thư giãn">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-pink-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">🪮</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Chải lông</span>
+            </button>
+
+            <!-- 4. Đèn laser -->
+            <button onclick="toggleLaserPointer()" id="laser-action-btn" class="desktop-scale-btn flex flex-col items-center gap-1 group relative shrink-0" title="Chơi đèn laser">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">🔴</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Tia laser</span>
+            </button>
+
+            <div class="w-[2px] h-9 bg-slate-300 shrink-0 mx-1"></div>
+
+            <!-- 5. Bày trí & Sơn phòng -->
+            <button onclick="openModal('decor-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group shrink-0" title="Sắp đặt đồ & sơn phòng">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-violet-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">🪑</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Bày trí</span>
+            </button>
+
+            <!-- 6. Đàn mèo -->
+            <button onclick="openModal('breed-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group shrink-0" title="Xem danh sách mèo">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">🐱</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Đàn mèo</span>
+            </button>
+
+            <!-- 7. Ghép đôi -->
+            <button onclick="openModal('couple-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group shrink-0" title="Ghép đôi sinh con">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-pink-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">💕</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Ghép đôi</span>
+            </button>
+
+            <div class="w-[2px] h-9 bg-slate-300 shrink-0 mx-1"></div>
+
+            <!-- 8. Kho đồ -->
+            <button onclick="openModal('inventory-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group shrink-0" title="Kho phụ kiện">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">📦</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Kho đồ</span>
+            </button>
+
+            <!-- 9. Cửa hàng -->
+            <button onclick="openModal('shop-modal')" class="desktop-scale-btn flex flex-col items-center gap-1 group shrink-0" title="Cửa hàng mèo & đồ">
+                <div class="desktop-scale-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-100 border-2 border-slate-900 flex items-center justify-center text-lg sm:text-xl group-hover:scale-105 shadow-sm">🛍️</div>
+                <span class="desktop-scale-text text-[10px] sm:text-xs font-black">Cửa hàng</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- MODAL 0: LOGIN & USER PROFILE SELECTION (LINA OR QWAN) -->
+    <div id="login-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="cozy-card w-full max-w-sm p-6 bg-[#fffbf5] text-center space-y-4 shadow-2xl border-4 border-pink-400">
+            <div class="text-4xl animate-bounce">🐱💕</div>
+            <h2 class="text-xl font-black text-slate-800">Căn Phòng Mèo Của Vợ Chồng Mình</h2>
+            <p class="text-xs font-bold text-slate-600">
+                Hãy chọn đúng tên để vào phòng và cùng nuôi mèo nhé!
+            </p>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="selectUserLogin('Lina')" class="cozy-btn py-3 bg-pink-200 hover:bg-pink-300 flex flex-col items-center gap-1">
+                    <span class="text-2xl">👸</span>
+                    <span class="font-black text-sm text-pink-900">Lina (Vợ)</span>
+                </button>
+                <button onclick="selectUserLogin('Qwan')" class="cozy-btn py-3 bg-indigo-200 hover:bg-indigo-300 flex flex-col items-center gap-1">
+                    <span class="text-2xl">🤴</span>
+                    <span class="font-black text-sm text-indigo-900">Qwan (Chồng)</span>
+                </button>
+            </div>
+            <div class="text-[11px] font-bold text-slate-400">Dữ liệu được đồng bộ để cả 2 người nuôi chung trên 2 máy!</div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: FEEDING WITH REALISTIC LIMIT & EXPANDED MENU -->
+    <div id="feeding-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-md flex flex-col p-4 sm:p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-2.5 border-b border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-xl">🥫</span><h3 class="font-black text-base sm:text-lg">Thực Đơn Bữa Ăn Mèo Cưng</h3></div>
+                <button onclick="closeModal('feeding-modal')" class="cozy-btn px-2.5 py-0.5 font-black bg-slate-200">✕</button>
+            </div>
+            <div class="py-3 space-y-2.5 max-h-[60vh] overflow-y-auto cozy-scroll">
+                <div class="p-2.5 bg-amber-50 rounded-2xl border-2 border-slate-900 flex items-center justify-between">
+                    <div>
+                        <div class="font-black text-[10px] text-slate-500 uppercase">Máy ăn tự động 2-in-1</div>
+                        <div id="bowl-status-txt" class="font-black text-xs sm:text-sm text-amber-800">Thức ăn: 0% • Nước sạch: 100%</div>
+                    </div>
+                    <div class="text-2xl">🍲</div>
+                </div>
+
+                <div class="text-[11px] font-extrabold text-slate-500 uppercase">Quy định: Mèo chỉ ăn khi đói dưới 75%!</div>
+
+                <!-- 1. Hạt khô & thịt sấy -->
+                <div class="p-2.5 bg-white rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🥣</span>
+                        <div>
+                            <div class="font-black text-xs">Hạt Hữu Cơ & Thịt Sấy Thơm Giòn</div>
+                            <div class="text-[10px] font-bold text-slate-500">+25% No bụng • Giúp mèo lớn dần</div>
+                            <div class="text-[10px] font-black text-amber-600">Kho: <span id="feed-stock-kibble">19</span> gói</div>
+                        </div>
+                    </div>
+                    <button onclick="feedFoodToBowl('kibble')" class="cozy-btn px-3 py-1.5 text-xs font-black bg-emerald-400 text-white">Đổ hạt</button>
+                </div>
+
+                <!-- 2. Pate cá ngừ -->
+                <div class="p-2.5 bg-white rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🥫</span>
+                        <div>
+                            <div class="font-black text-xs">Pate Cá Ngừ Hoàng Gia</div>
+                            <div class="text-[10px] font-bold text-slate-500">+45% No • Thơm lừng béo ngậy • 25🪙</div>
+                        </div>
+                    </div>
+                    <button onclick="feedFoodToBowl('pate')" class="cozy-btn px-3 py-1.5 text-xs font-black bg-amber-300">Mua & Đổ</button>
+                </div>
+
+                <!-- 3. Thịt bò hầm -->
+                <div class="p-2.5 bg-white rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🥩</span>
+                        <div>
+                            <div class="font-black text-xs">Bò Kobe Xé Sợi Hấp Sốt</div>
+                            <div class="text-[10px] font-bold text-slate-500">+50% No • Đậm đà dinh dưỡng • 35🪙</div>
+                        </div>
+                    </div>
+                    <button onclick="feedFoodToBowl('beef')" class="cozy-btn px-3 py-1.5 text-xs font-black bg-rose-300">Thưởng bò</button>
+                </div>
+
+                <!-- 4. Kem súp thưởng Ciao Churu -->
+                <div class="p-2.5 bg-white rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🍦</span>
+                        <div>
+                            <div class="font-black text-xs">Kem Súp Thưởng Ciao Churu</div>
+                            <div class="text-[10px] font-bold text-slate-500">+20% No • +25 Thân thiết • 20🪙</div>
+                        </div>
+                    </div>
+                    <button onclick="feedFoodToBowl('churu')" class="cozy-btn px-3 py-1.5 text-xs font-black bg-pink-300">Đút kem</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: LITTER CLEANING -->
+    <div id="litter-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-sm flex flex-col p-4 sm:p-5 bg-[#fffbf5] text-center space-y-3">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-xl">🧹</span><h3 class="font-black text-base">Chậu Cát Vệ Sinh 2 Màu Xám-Kem</h3></div>
+                <button onclick="closeModal('litter-modal')" class="cozy-btn px-2.5 py-0.5 font-black bg-slate-200">✕</button>
+            </div>
+            <div class="text-4xl">🛁</div>
+            <div class="bg-cyan-50 p-3 rounded-2xl border-2 border-slate-900 text-xs font-extrabold">
+                <div id="litter-clean-txt" class="text-sm font-black text-cyan-800">Cát Sạch: 100%</div>
+                <div class="stat-bar-track mt-1.5"><div id="litter-clean-bar" class="stat-bar-fill bg-cyan-500" style="width: 100%"></div></div>
+            </div>
+            <p class="text-xs font-bold text-slate-600">Thành chậu cao chống văng cát, bậc lưới lọc chân giữ sạch phòng. Giữ chậu luôn sạch giúp mèo sảng khoái và phát triển đều đặn!</p>
+            <button onclick="executeCleanLitter()" class="w-full cozy-btn py-2.5 bg-cyan-400 hover:bg-cyan-500 text-white font-black text-xs shadow-sm">
+                ✨ Dọn Xúc Cát Bẩn & Thay Cát Thơm Mới
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: SHOP (CATS, EXPANDED DECOR, FOOD) -->
+    <div id="shop-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-2xl max-h-[85vh] flex flex-col p-4 sm:p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-2.5 border-b border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-xl">🛍️</span><h3 class="font-black text-base sm:text-lg">Cửa Hàng Thú Cưng & Đồ Cho Mèo</h3></div>
+                <button onclick="closeModal('shop-modal')" class="cozy-btn px-2.5 py-0.5 font-black bg-slate-200">✕</button>
+            </div>
+            <div id="shop-tabs" class="flex gap-2 my-2.5 pb-1 border-b border-slate-200">
+                <button onclick="switchShopTab('cats')" id="shop-tab-cats" class="cozy-btn px-3 py-1 text-xs font-extrabold bg-amber-200">Mèo Cưng 🐱</button>
+                <button onclick="switchShopTab('decor')" id="shop-tab-decor" class="cozy-btn px-3 py-1 text-xs font-extrabold bg-slate-100">Đồ Cho Mèo 🪑</button>
+                <button onclick="switchShopTab('food')" id="shop-tab-food" class="cozy-btn px-3 py-1 text-xs font-extrabold bg-slate-100">Thức Ăn 🥫</button>
+            </div>
+            <div id="shop-content-area" class="flex-1 overflow-y-auto cozy-scroll py-2 grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: CATS ROSTER & NEIGHBOR GIFTING FEATURE -->
+    <div id="breed-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-lg max-h-[85vh] flex flex-col p-4 sm:p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-xl">🐱</span><h3 class="font-black text-base sm:text-lg">Đàn Mèo Của Bạn</h3></div>
+                <button onclick="closeModal('breed-modal')" class="cozy-btn px-2.5 py-0.5 font-black bg-slate-200">✕</button>
+            </div>
+            <div class="py-1.5 text-xs font-bold text-slate-500 border-b border-slate-200 flex justify-between items-center">
+                <span>Cần ~10 tiếng trông nom để đạt Cấp 3 Trưởng Thành</span>
+                <span class="text-pink-600 font-extrabold">Có trên 3 mèo: Tặng hàng xóm (+250🪙)</span>
+            </div>
+            <div id="cats-roster-list" class="flex-1 overflow-y-auto cozy-scroll py-2.5 space-y-2.5"></div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: DECOR & ROOM STYLING (WALLS, FLOOR, CURTAINS) -->
+    <div id="decor-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-xl max-h-[85vh] flex flex-col p-4 sm:p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-xl">🪑</span><h3 class="font-black text-base sm:text-lg">Bày Trí Phòng & Sơn Tường</h3></div>
+                <button onclick="closeModal('decor-modal')" class="cozy-btn px-2.5 py-0.5 font-black bg-slate-200">✕</button>
+            </div>
+            <div class="flex gap-2 my-2 pb-1 border-b border-slate-200 text-xs">
+                <button onclick="switchDecorTab('items')" id="dec-tab-items" class="cozy-btn px-3 py-1 font-black bg-amber-200">Nội Thất & Đồ Chơi</button>
+                <button onclick="switchDecorTab('styles')" id="dec-tab-styles" class="cozy-btn px-3 py-1 font-black bg-slate-100">Sơn Tường & Phong Cách</button>
+            </div>
+
+            <!-- Tab 1: Items List & Placement Button -->
+            <div id="decor-items-tab" class="space-y-2 flex-1 overflow-y-auto cozy-scroll">
+                <div class="p-2.5 bg-gradient-to-r from-violet-100 to-pink-100 rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-2">
+                    <div>
+                        <div class="font-black text-xs sm:text-sm text-violet-900">🛠️ Chế Độ Sắp Đặt Phòng Trực Quan</div>
+                        <div class="text-[11px] font-bold text-slate-600">Rê chuột trên sàn để di chuyển và xoay vị trí đồ vật!</div>
+                    </div>
+                    <button onclick="enterDecorEditMode()" class="cozy-btn px-3.5 py-1.5 bg-violet-500 text-white font-black text-xs shrink-0">Bắt đầu ➔</button>
+                </div>
+                <div id="decor-toggle-list" class="space-y-2"></div>
+            </div>
+
+            <!-- Tab 2: Wall, Floor & Curtain Customization -->
+            <div id="decor-styles-tab" class="hidden space-y-3 flex-1 overflow-y-auto cozy-scroll py-1 text-xs">
+                <div class="p-3 bg-white rounded-2xl border-2 border-slate-900 space-y-2">
+                    <div class="font-black text-slate-700">🎨 Màu & Giấy Dán Tường</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setRoomWallStyle('stripes')" class="cozy-btn p-2 text-left bg-pink-50">🌸 Kẻ Sọc Hồng Pastel (Mặc định)</button>
+                        <button onclick="setRoomWallStyle('cream')" class="cozy-btn p-2 text-left bg-amber-50">🌾 Vàng Be Ấm Cúng</button>
+                        <button onclick="setRoomWallStyle('mint')" class="cozy-btn p-2 text-left bg-teal-50">🌿 Xanh Bạc Hà Mát Mẻ</button>
+                        <button onclick="setRoomWallStyle('wood')" class="cozy-btn p-2 text-left bg-stone-100">🪵 Phong Cách Gỗ Tự Nhiên</button>
+                    </div>
+                </div>
+                <div class="p-3 bg-white rounded-2xl border-2 border-slate-900 space-y-2">
+                    <div class="font-black text-slate-700">🪵 Loại Sàn Gỗ</div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setRoomFloorStyle('oak')" class="cozy-btn p-2 bg-amber-100 text-center font-bold">Gỗ Sồi Ấm</button>
+                        <button onclick="setRoomFloorStyle('white_wood')" class="cozy-btn p-2 bg-slate-100 text-center font-bold">Gỗ Trắng Bắc Âu</button>
+                        <button onclick="setRoomFloorStyle('walnut')" class="cozy-btn p-2 bg-stone-200 text-center font-bold">Gỗ Óc Chó Sẫm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: BREEDING -->
+    <div id="couple-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-md flex flex-col p-4 sm:p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-xl">💕</span><h3 class="font-black text-base sm:text-lg">Ghép Đôi Mèo Cưng</h3></div>
+                <button onclick="closeModal('couple-modal')" class="cozy-btn px-2.5 py-0.5 font-black bg-slate-200">✕</button>
+            </div>
+            <div class="py-3 space-y-3">
+                <p class="text-xs font-bold text-slate-600">Chọn 2 bé mèo cưng đạt Cấp 3 Trưởng Thành để ghép đôi chào đón bé mèo con siêu cưng!</p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <label class="font-black text-[10px] uppercase text-slate-500">Mèo Bố (Bé 1)</label>
+                        <select id="couple-cat-1" class="w-full mt-1 p-1.5 cozy-pill text-xs font-bold bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="font-black text-[10px] uppercase text-slate-500">Mèo Mẹ (Bé 2)</label>
+                        <select id="couple-cat-2" class="w-full mt-1 p-1.5 cozy-pill text-xs font-bold bg-white"></select>
+                    </div>
+                </div>
+                <button onclick="executeBreeding()" class="w-full cozy-btn py-2.5 bg-pink-400 hover:bg-pink-500 text-white font-black text-xs shadow-sm">
+                    💖 Bắt đầu ghép đôi (100 🪙)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 7: INVENTORY -->
+    <div id="inventory-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="cozy-card w-full max-w-md flex flex-col p-4 sm:p-5 bg-[#fffbf5]">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <div class="flex items-center gap-2"><span class="text-xl">📦</span><h3 class="font-black text-base sm:text-lg">Kho Đồ & Phụ Kiện</h3></div>
+                <button onclick="closeModal('inventory-modal')" class="cozy-btn px-2.5 py-0.5 font-black bg-slate-200">✕</button>
+            </div>
+            <div id="inventory-list" class="py-2.5 space-y-2 text-xs font-bold max-h-60 overflow-y-auto cozy-scroll"></div>
+        </div>
+    </div>
+
+    <!-- MODAL 8: LEVEL UP -->
+    <div id="levelup-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="cozy-card w-full max-w-sm p-5 bg-[#fffbf5] text-center space-y-2.5 shadow-2xl border-4 border-amber-400">
+            <div class="text-4xl animate-bounce">🎉✨</div>
+            <h2 class="text-xl font-black text-pink-600">BÉ MÈO ĐÃ LỚN LÊN!</h2>
+            <div id="levelup-cat-name" class="text-base font-black text-slate-800">Miu Cam</div>
+            <div id="levelup-badge-new" class="inline-block px-3 py-1 rounded-full bg-pink-500 text-white font-black text-xs shadow-md">
+                🐾 Cấp 2: Mèo Mới Lớn
+            </div>
+            <p id="levelup-desc" class="text-xs font-bold text-slate-600 max-w-xs mx-auto">
+                Bé đã lớn thêm một bậc nhờ sự chăm sóc chu đáo của vợ chồng mình!
+            </p>
+            <div class="p-2 bg-amber-50 rounded-xl border border-slate-900 text-xs font-black text-amber-800">
+                🎁 Thưởng chúc mừng: 🪙 +100 Xu!
+            </div>
+            <button onclick="closeModal('levelup-modal')" class="w-full cozy-btn py-2.5 bg-emerald-400 hover:bg-emerald-500 text-white font-black text-xs shadow-md">
+                Tuyệt vời! Tiếp tục chăm sóc Boss 💕
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN GAME LOGIC & THREE.JS ENGINE SCRIPT -->
+    <script>
+        /********************************************************************
+         * 1. AUDIO & SOUND FX (Web Audio API)
+         ********************************************************************/
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playMeowSound(pitchMod = 1.0) {
+            initAudio(); if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(450 * pitchMod, now);
+            osc.frequency.exponentialRampToValueAtTime(680 * pitchMod, now + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(320 * pitchMod, now + 0.45);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.48);
+        }
+
+        function playCoinSound() {
+            initAudio(); if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(987.77, now);
+            osc.frequency.setValueAtTime(1318.51, now + 0.08);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.3);
+        }
+
+        function playPurrSound() {
+            initAudio(); if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(), lfo = audioCtx.createOscillator(), lfoGain = audioCtx.createGain(), mainGain = audioCtx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(68, now);
+            lfo.type = 'sine'; lfo.frequency.setValueAtTime(25, now);
+            lfoGain.gain.setValueAtTime(0.07, now);
+            lfo.connect(lfoGain); lfoGain.connect(mainGain.gain);
+            mainGain.gain.setValueAtTime(0.09, now);
+            mainGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+            osc.connect(mainGain); mainGain.connect(audioCtx.destination);
+            lfo.start(now); osc.start(now);
+            lfo.stop(now + 1.4); osc.stop(now + 1.4);
+        }
+
+        function playCrunchSound() {
+            initAudio(); if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            for (let i = 0; i < 4; i++) {
+                const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(650 + Math.random() * 500, now + i * 0.08);
+                gain.gain.setValueAtTime(0.08, now + i * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.06);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.06);
+            }
+        }
+
+        function playSandSound() {
+            initAudio(); if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const bufferSize = Math.floor(audioCtx.sampleRate * 0.5);
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.12;
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass'; filter.frequency.setValueAtTime(1300, now); filter.Q.setValueAtTime(2.5, now);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.14, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+            noise.start(now);
+        }
+
+        function playLevelUpSound() {
+            initAudio(); if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                gain.gain.setValueAtTime(0.18, now + idx * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now + idx * 0.08); osc.stop(now + idx * 0.08 + 0.35);
+            });
+        }
+
+        /********************************************************************
+         * 2. REAL-TIME CLOCK & HCM WEATHER (STREET LAMPS 18H-6H)
+         ********************************************************************/
+        let realTimeData = {
+            hour: 12,
+            minute: 0,
+            timeStr: '12:00',
+            timeOfDay: 'day',
+            weatherIcon: '☀️',
+            temp: 32,
+            streetLampsOn: false
+        };
+
+        function updateRealTimeAndWeather() {
+            const now = new Date();
+            const options = { timeZone: 'Asia/Ho_Chi_Minh', hour12: false, hour: '2-digit', minute: '2-digit' };
+            const parts = now.toLocaleTimeString('vi-VN', options).split(':');
+            const h = parseInt(parts[0], 10) || now.getHours();
+            const m = parseInt(parts[1], 10) || now.getMinutes();
+            realTimeData.hour = h;
+            realTimeData.minute = m;
+            realTimeData.timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+            // Street lamps turn on from 18:00 (6 PM) to 06:00 (6 AM)
+            realTimeData.streetLampsOn = (h >= 18 || h < 6);
+
+            if (h >= 5 && h < 7) {
+                realTimeData.timeOfDay = 'dawn';
+                realTimeData.weatherIcon = '🌅';
+                realTimeData.temp = 26;
+            } else if (h >= 7 && h < 17) {
+                realTimeData.timeOfDay = 'day';
+                realTimeData.weatherIcon = '☀️';
+                realTimeData.temp = 32;
+            } else if (h >= 17 && h < 19) {
+                realTimeData.timeOfDay = 'sunset';
+                realTimeData.weatherIcon = '🌇';
+                realTimeData.temp = 29;
+            } else {
+                realTimeData.timeOfDay = 'night';
+                realTimeData.weatherIcon = '🌙';
+                realTimeData.temp = 27;
+            }
+
+            const disp = document.getElementById('realtime-display');
+            if (disp) {
+                disp.innerHTML = `<span>${realTimeData.weatherIcon}</span> <span>${realTimeData.temp}°C TP.HCM</span> • <span>${realTimeData.timeStr}</span>`;
+            }
+
+            applySkyAndLighting(realTimeData.timeOfDay);
+        }
+
+        function applySkyAndLighting(timeOfDay) {
+            if (!street.skyMat) return;
+            const isNight = timeOfDay === 'night';
+            const isDawnOrSunset = (timeOfDay === 'dawn' || timeOfDay === 'sunset');
+
+            if (isNight) {
+                scene.background.set(0x0b1226);
+                street.skyMat.map = street.skyNight;
+                if (window.__amb) window.__amb.intensity = 0.32;
+                if (window.__sun) {
+                    window.__sun.intensity = 0.18;
+                    window.__sun.color.setHex(0xa5b4fc);
+                }
+            } else if (isDawnOrSunset) {
+                scene.background.set(0xfb7185);
+                street.skyMat.map = street.skySunset || street.skyDay;
+                if (window.__amb) window.__amb.intensity = 0.55;
+                if (window.__sun) {
+                    window.__sun.intensity = 0.75;
+                    window.__sun.color.setHex(0xfda4af);
+                }
+            } else {
+                scene.background.set(0xfcefe3);
+                street.skyMat.map = street.skyDay;
+                if (window.__amb) window.__amb.intensity = 0.65;
+                if (window.__sun) {
+                    window.__sun.intensity = 0.85;
+                    window.__sun.color.setHex(0xffedd5);
+                }
+            }
+
+            // Street lamps active strictly between 18:00 and 06:00
+            street.glow.forEach(b => {
+                b.material.emissiveIntensity = realTimeData.streetLampsOn ? 2.5 : 0.05;
+            });
+
+            street.skyMat.needsUpdate = true;
+        }
+
+        /********************************************************************
+         * 3. USER LOGIN & CROSS-DEVICE MULTI-USER CO-PARENTING (LINA & QWAN)
+         ********************************************************************/
+        let currentUser = 'Lina';
+
+        function checkUserLogin() {
+            const savedUser = localStorage.getItem('meowlator_logged_user');
+            if (savedUser && (savedUser === 'Lina' || savedUser === 'Qwan')) {
+                currentUser = savedUser;
+                updateUserBadgeUI();
+            } else {
+                document.getElementById('login-modal').classList.remove('hidden');
+            }
+        }
+
+        function selectUserLogin(name) {
+            currentUser = name;
+            localStorage.setItem('meowlator_logged_user', name);
+            closeModal('login-modal');
+            updateUserBadgeUI();
+            showFloatingNotification(`Chào mừng ${name} đã trở về căn phòng mèo 💕!`, '#ec4899', '✨');
+            syncWithCloud(true);
+        }
+
+        function promptUserLoginSwitch() {
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function updateUserBadgeUI() {
+            const badge = document.getElementById('current-user-name');
+            if (badge) badge.textContent = `${currentUser} (${currentUser === 'Lina' ? 'Vợ' : 'Chồng'})`;
+        }
+
+        // Shared Cloud Room Synchronization
+        const CLOUD_ROOM_KEY = 'meowlator_lina_qwan_room_v1';
+        async function syncWithCloud(isInitial = false) {
+            try {
+                // Read from cloud
+                const getRes = await fetch(`https://kvdb.io/A955nC7Cg9jS439oP81sVf/${CLOUD_ROOM_KEY}`, { cache: 'no-store' });
+                if (getRes.ok) {
+                    const remoteState = await getRes.json();
+                    if (remoteState && remoteState.lastSaved) {
+                        if (!state.lastSaved || remoteState.lastSaved > state.lastSaved) {
+                            state = Object.assign(state, remoteState);
+                            rebuildRoomDecorAndCats();
+                            updateUI();
+                            if (!isInitial) {
+                                showFloatingNotification(`Đã nhận cập nhật mới từ ${remoteState.lastUser || 'người ấy'} 💕`, '#10b981', '🔄');
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Cloud sync silent fallback to local storage
+            }
+        }
+
+        async function pushStateToCloud() {
+            state.lastSaved = Date.now();
+            state.lastUser = currentUser;
+            saveGameState();
+            try {
+                await fetch(`https://kvdb.io/A955nC7Cg9jS439oP81sVf/${CLOUD_ROOM_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(state)
+                });
+            } catch (e) {}
+        }
+
+        /********************************************************************
+         * 4. GAME STATE & BALANCED REAL-TIME GROWTH (10 HOURS TO LVL 3)
+         ********************************************************************/
+        const CAT_GROWTH_LEVELS = {
+            1: { name: 'Mèo Sơ Sinh', badge: '🍼 Cấp 1: Bé Con', minScale: 0.55, maxScale: 0.70, pitch: 1.35, desc: 'Bé xíu tí hon, cần bú sữa, ăn hạt mềm và được vuốt ve' },
+            2: { name: 'Mèo Mới Lớn', badge: '🐾 Cấp 2: Mới Lớn', minScale: 0.75, maxScale: 0.90, pitch: 1.15, desc: 'Nhanh nhẹn tinh nghịch, thích leo tháp, chạy bánh xe và vờn laser' },
+            3: { name: 'Mèo Trưởng Thành', badge: '👑 Cấp 3: Trưởng Thành', minScale: 0.95, maxScale: 1.10, pitch: 1.00, desc: 'Oai vệ mượt mà, mở khóa tính năng Ghép Đôi sinh mèo con' },
+            4: { name: 'Đại Boss Hoàng Gia', badge: '🌟 Cấp 4: Đại Boss', minScale: 1.18, maxScale: 1.32, pitch: 0.90, desc: 'Múp míp núng nính, bá vương căn phòng, sinh lợi x2 xu mỗi ngày' }
+        };
+
+        function getCatScale(level, growthExp) {
+            const lvl = CAT_GROWTH_LEVELS[level] || CAT_GROWTH_LEVELS[1];
+            const norm = Math.min(100, Math.max(0, growthExp || 0)) / 100;
+            return +(lvl.minScale + norm * (lvl.maxScale - lvl.minScale)).toFixed(2);
+        }
+
+        const CAT_BREEDS = [
+            { id: 'ginger', name: 'Mèo Cam Mướp', price: 150, pattern: 'tabby', bodyColor: 0xf59e0b, stripeColor: 0xb45309, bellyColor: 0xfffbeb, earColor: 0xd97706, eyeColor: 0x10b981, noseColor: 0xf472b6, pitch: 1.0, earType: 'normal', fluffy: false, desc: 'Ham ăn, quấn chủ, vằn hổ chữ M trên trán' },
+            { id: 'british', name: 'Mèo Anh Lông Ngắn', price: 220, pattern: 'solid', bodyColor: 0x718096, stripeColor: 0x4a5568, bellyColor: 0xcbd5e1, earColor: 0x475569, eyeColor: 0xf59e0b, noseColor: 0xbe185d, pitch: 0.92, earType: 'normal', fluffy: false, desc: 'Má phệ tròn xoe, lông xám xanh nhung mịn' },
+            { id: 'calico', name: 'Mèo Tam Thể May Mắn', price: 260, pattern: 'calico', bodyColor: 0xfffdf9, stripeColor: 0xea580c, bellyColor: 0xffffff, earColor: 0x1e293b, eyeColor: 0x10b981, noseColor: 0xf472b6, pitch: 1.12, earType: 'normal', fluffy: false, desc: 'Đốm cam-đen-trắng tự nhiên, mang tài lộc cho vợ' },
+            { id: 'siamese', name: 'Mèo Xiêm Hoàng Gia', price: 300, pattern: 'siamese', bodyColor: 0xf5ead6, stripeColor: 0x3e2723, bellyColor: 0xfffdf9, earColor: 0x3e2723, eyeColor: 0x0284c7, noseColor: 0x3e2723, pitch: 1.05, earType: 'normal', fluffy: false, desc: 'Mặt nạ nâu cacao, mắt xanh biển sâu thẳm' },
+            { id: 'white', name: 'Mèo Ba Tư Trắng Tuyết', price: 280, pattern: 'solid', bodyColor: 0xf8fafc, stripeColor: 0xe2e8f0, bellyColor: 0xffffff, earColor: 0xfda4af, eyeColor: 0x38bdf8, noseColor: 0xf472b6, pitch: 1.18, earType: 'normal', fluffy: true, desc: 'Bờm lông cổ bông xù trắng muốt như mây' },
+            { id: 'tuxedo', name: 'Mèo Đen Đi Tất Trắng', price: 250, pattern: 'tuxedo', bodyColor: 0x1e293b, stripeColor: 0x0f172a, bellyColor: 0xffffff, earColor: 0x0f172a, eyeColor: 0xfacc15, noseColor: 0xf472b6, pitch: 0.88, earType: 'normal', fluffy: false, desc: 'Lịch lãm mặc vest đen, yếm ngực & 4 bàn chân trắng' },
+            { id: 'scottish', name: 'Mèo Anh Tai Cụp Vàng Bơ', price: 340, pattern: 'tabby', bodyColor: 0xfcd34d, stripeColor: 0xd97706, bellyColor: 0xfffbeb, earColor: 0xb45309, eyeColor: 0x059669, noseColor: 0xf472b6, pitch: 1.15, earType: 'folded', fluffy: true, desc: 'Đôi tai cụp siêu cưng, mặt bánh bao tròn trịa' },
+            { id: 'pinky', name: 'Mèo Hồng Đào Tiên Tử', price: 450, pattern: 'tabby', bodyColor: 0xf9a8d4, stripeColor: 0xec4899, bellyColor: 0xfce7f3, earColor: 0xf472b6, eyeColor: 0x8b5cf6, noseColor: 0xdb2777, pitch: 1.25, earType: 'normal', fluffy: true, desc: 'Giống mèo hiếm siêu cấp đáng yêu dành riêng tặng Vợ' }
+        ];
+
+        const CAT_ACCESSORIES = [
+            { id: 'bell', name: 'Chuông Vàng Đỏ' },
+            { id: 'sprout', name: 'Mầm Cây Non 🌱' },
+            { id: 'crown', name: 'Vương Miện Vàng 👑' },
+            { id: 'bow', name: 'Nơ Hồng Xinh 🎀' },
+            { id: 'beret', name: 'Mũ Nồi Họa Sĩ 🎨' }
+        ];
+
+        const DECOR_CATALOG = [
+            { id: 'food_station', name: 'Máy Ăn & Uống 2-in-1 🥫💧', price: 100, type: 'station', score: 25, desc: 'Máy cấp hạt và bình nước tự động trắng-xám' },
+            { id: 'litter_box', name: 'Chậu Cát Xám Viền Cao 🧹', price: 120, type: 'station', score: 22, desc: 'Chậu 2 màu xám-kem, có thành chắn bắn cát và lưới lọc' },
+            { id: 'cat_tree', name: 'Cây Trèo Mèo 3 Tầng 🌳', price: 250, type: 'furniture', score: 22, desc: 'Tháp cào móng có đệm nằm để mèo leo nhảy từng tầng' },
+            { id: 'cat_wheel', name: 'Bánh Xe Chạy Bộ Khổng Lồ 🏃', price: 200, type: 'toy', score: 24, desc: 'Bánh xe tập thể dục đường kính lớn cho mèo chạy bộ vòng vòng' },
+            { id: 'cardboard_box', name: 'Hộp Carton Bí Mật 📦', price: 60, type: 'toy', score: 12, desc: 'Hộp giấy rỗng các bé mèo cực mê chui vào ngủ thò đầu ra' },
+            { id: 'catnip_pot', name: 'Chậu Cỏ Mèo Catnip Tươi 🌿', price: 80, type: 'tree', score: 14, desc: 'Cỏ mèo thơm ngọt mát lành giúp mèo giải tỏa stress' },
+            { id: 'yarn_ball', name: 'Bóng Len Lăn Tròn 🧶', price: 50, type: 'toy', score: 10, desc: 'Cuộn len ấm áp cho mèo vờn bắt vui nhộn trên sàn' },
+            { id: 'donut_bed', name: 'Đệm Bánh Donut Êm Ái 🍩', price: 130, type: 'furniture', score: 15, desc: 'Đệm tròn rực rỡ êm như mây cho mèo lười cuộn tròn' },
+            { id: 'scratching_post', name: 'Trụ Cào Móng Xương Rồng 🌵', price: 140, type: 'toy', score: 16, desc: 'Trụ cào móng xương rồng xanh mát đính hoa vàng' },
+            { id: 'cat_tunnel', name: 'Ống Chui Vải Cầu Vồng 🎪', price: 130, type: 'toy', score: 14, desc: 'Ống chui mềm cho các bé mèo con tinh nghịch đuổi bắt' },
+            { id: 'sakura_left', name: 'Cây Anh Đào Trắng 🌸', price: 180, type: 'tree', score: 15, desc: 'Cây anh đào bonsai trắng muốt phong cách Nhật Bản' },
+            { id: 'sakura_right', name: 'Cây Anh Đào Hồng 🌸', price: 180, type: 'tree', score: 15, desc: 'Cây anh đào hồng phấn ngọt ngào lãng mạn' },
+            { id: 'wood_arch', name: 'Cổng Vòm Gỗ Tự Nhiên 🪵', price: 210, type: 'furniture', score: 18, desc: 'Cổng vòm gỗ hoa cỏ thiên nhiên tô điểm phòng' },
+            { id: 'cozy_bed', name: 'Ổ Nằm Lót Bông Hồng 🛏️', price: 120, type: 'furniture', score: 12, desc: 'Nệm bông tròn xoe êm ái cho mèo cuộn mình ngủ trưa' }
+        ];
+
+        const DEFAULT_DECOR_POSITIONS = {
+            food_station: { x: 1.4, z: -1.0, rot: 0 },
+            litter_box: { x: 3.3, z: -0.6, rot: -0.3 },
+            cat_tree: { x: -3.2, z: -2.0, rot: 0 },
+            cat_wheel: { x: -3.4, z: 0.2, rot: Math.PI / 2 },
+            cardboard_box: { x: -0.8, z: 0.8, rot: 0.2 },
+            catnip_pot: { x: 2.2, z: -1.8, rot: 0 },
+            yarn_ball: { x: 0.5, z: 1.0, rot: 0 },
+            donut_bed: { x: -2.2, z: -1.2, rot: 0 },
+            scratching_post: { x: -1.7, z: -2.2, rot: 0 },
+            cat_tunnel: { x: -2.1, z: 0.7, rot: 0.5 },
+            sakura_left: { x: -4.3, z: -2.5, rot: 0 },
+            sakura_right: { x: 4.3, z: -2.5, rot: 0 },
+            wood_arch: { x: 0, z: -1.8, rot: 0 },
+            cozy_bed: { x: 2.8, z: -2.0, rot: 0.2 }
+        };
+
+        const MAIN_QUESTS = [
+            { title: 'Nuôi Boss Lớn Lên', desc: 'Nuôi dưỡng bé mèo đầu tiên đạt Cấp 2 (Mới Lớn)', check: s => ({ cur: (s.cats[0] && s.cats[0].level >= 2) ? 1 : 0, max: 1 }), reward: 150 },
+            { title: 'Bữa Tiệc No Bụng', desc: 'Đổ thức ăn cho mèo măm măm 3 lần', check: s => ({ cur: s.stats.fedToday || 0, max: 3 }), reward: 120 },
+            { title: 'Căn Phòng Sạch Sạch', desc: 'Dọn sạch cát vệ sinh thơm tho cho mèo', check: s => ({ cur: s.stats.cleanedToday || 0, max: 1 }), reward: 100 },
+            { title: 'Sen Chu Đáo', desc: 'Chải lông thư giãn cho mèo 3 lần', check: s => ({ cur: s.stats.brushedToday || 0, max: 3 }), reward: 150 },
+            { title: 'Mở Rộng Đàn Mèo', desc: 'Nhận nuôi thêm bé mèo thứ 2 từ Cửa Hàng', check: s => ({ cur: s.cats.length, max: 2 }), reward: 250 }
+        ];
+
+        // FRESH INITIAL STATE: 1 CAT, BASIC ESSENTIALS TO DECORATE STEP BY STEP
+        let state = {
+            coins: 1470,
+            roomName: 'Phòng Mèo Của Vợ',
+            gameSpeed: 1,
+            lampMode: 'on',
+            nightMode: false,
+            leftPanelOpen: false,
+            rightPanelOpen: false,
+            hunger: 70, // Ready to eat
+            happiness: 85,
+            cleanliness: 100,
+            foodStock: 19,
+            foodBowlPercent: 0,
+            litterCleanliness: 100,
+            lastGrowthCheck: Date.now(),
+            lastPetTime: 0,
+            lastBrushTime: 0,
+            wallStyle: 'stripes',
+            floorStyle: 'oak',
+            ownedDecor: ['food_station', 'litter_box', 'cat_tree', 'cat_wheel', 'cardboard_box', 'catnip_pot'],
+            activeDecor: ['food_station', 'litter_box', 'cat_tree', 'cat_wheel', 'cardboard_box', 'catnip_pot'],
+            decorPositions: Object.assign({}, DEFAULT_DECOR_POSITIONS),
+            mainQuestIdx: 0,
+            stats: { fedToday: 0, cleanedToday: 0, brushedToday: 0, pettedToday: 1 },
+            cats: [
+                {
+                    id: 'c1',
+                    name: 'Miu Cam',
+                    breedId: 'ginger',
+                    hunger: 65, // Below 75% so player can feed right away!
+                    happiness: 85,
+                    love: 85,
+                    level: 1, // Kitten
+                    growthExp: 10,
+                    scale: 0.58,
+                    accessory: 'bell'
+                }
+            ]
+        };
+
+        function saveGameState() {
+            localStorage.setItem('meowlator_wife_state_v7', JSON.stringify(state));
+        }
+
+        function loadGameState() {
+            const saved = localStorage.getItem('meowlator_wife_state_v7');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = Object.assign(state, parsed);
+                    if (!state.decorPositions) state.decorPositions = Object.assign({}, DEFAULT_DECOR_POSITIONS);
+                    if (!state.cats || state.cats.length === 0) {
+                        state.cats = [{ id: 'c1', name: 'Miu Cam', breedId: 'ginger', hunger: 65, happiness: 85, love: 85, level: 1, growthExp: 10, scale: 0.58, accessory: 'bell' }];
+                    }
+                } catch (e) {
+                    console.error('Save state parse error', e);
+                }
+            }
+        }
+
+        let isHUDHidden = false;
+        function toggleHUDVisibility() {
+            isHUDHidden = !isHUDHidden;
+            const header = document.getElementById('main-header');
+            const footer = document.getElementById('main-footer');
+            const middle = document.getElementById('middle-area');
+            const showBtn = document.getElementById('hud-show-btn');
+
+            if (isHUDHidden) {
+                header.classList.remove('hud-visible'); header.classList.add('hud-hidden');
+                footer.classList.remove('hud-visible'); footer.classList.add('hud-hidden');
+                middle.classList.remove('hud-visible'); middle.classList.add('hud-hidden');
+                showBtn.classList.remove('hidden');
+            } else {
+                header.classList.remove('hud-hidden'); header.classList.add('hud-visible');
+                footer.classList.remove('hud-hidden'); footer.classList.add('hud-visible');
+                middle.classList.remove('hud-hidden'); middle.classList.add('hud-visible');
+                showBtn.classList.add('hidden');
+            }
+        }
+
+        function toggleSidePanel(side) {
+            if (side === 'left') state.leftPanelOpen = !state.leftPanelOpen;
+            else if (side === 'right') state.rightPanelOpen = !state.rightPanelOpen;
+            applySidePanelStates();
+            saveGameState();
+        }
+
+        function applySidePanelStates() {
+            const leftCard = document.getElementById('left-panel-card');
+            const leftTab = document.getElementById('left-reopen-tab');
+            const rightCard = document.getElementById('right-panel-card');
+            const rightTab = document.getElementById('right-reopen-tab');
+
+            if (leftCard && leftTab) {
+                if (state.leftPanelOpen) { leftCard.classList.remove('left-collapsed'); leftTab.classList.add('hidden'); }
+                else { leftCard.classList.add('left-collapsed'); leftTab.classList.remove('hidden'); }
+            }
+            if (rightCard && rightTab) {
+                if (state.rightPanelOpen) { rightCard.classList.remove('right-collapsed'); rightTab.classList.add('hidden'); }
+                else { rightCard.classList.add('right-collapsed'); rightTab.classList.remove('hidden'); }
+            }
+        }
+
+        function showFloatingNotification(text, color = '#10b981', icon = '💖') {
+            const container = document.getElementById('floating-fx-layer');
+            if (!container) return;
+            const bubble = document.createElement('div');
+            bubble.className = 'cozy-pill px-4 py-1.5 text-xs sm:text-sm font-black flex items-center gap-2 shadow-2xl floating-bubble border-2 border-slate-900';
+            bubble.style.backgroundColor = '#fffbf5';
+            bubble.style.color = color;
+            bubble.innerHTML = `<span class="text-base sm:text-lg">${icon}</span><span>${text}</span>`;
+            container.appendChild(bubble);
+            setTimeout(() => { if (bubble.parentNode) bubble.parentNode.removeChild(bubble); }, 2500);
+        }
+
+        /********************************************************************
+         * 5. THREE.JS 3D ROOM SCENE & LIGHTING (WITH LINA'S CALLIGRAPHY RUG)
+         ********************************************************************/
+        let scene, camera, renderer;
+        let roomGroup, catActors = [];
+        let decorMeshes = {};
+        let decorSelectionRing = null;
+        let selectedDecorId = 'food_station';
+        let isDecorEditMode = false;
+        let isDraggingDecor = false;
+        let isDraggingCat = false;
+        let draggedCatActor = null;
+        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 2.6);
+
+        let foodBowlKibbleMesh = null;
+        let litterBoxDirtGroup = null;
+        let catWheelDrum = null;
+        let streetVehicles = [];
+
+        let laserActive = false;
+        let laserTarget3D = new THREE.Vector3(0, 0, 0);
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedCatId = 'c1';
+
+        const BOX_W = 10, BOX_H = 5.2, BOX_D = 6.5;
+        const FLOOR_Y = -2.6;
+
+        function fitCamera() {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.aspect = aspect;
+
+            const halfV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+            const needHalfW = aspect < 1.0 ? 2.6 : 4.0;
+            const dist = Math.min(16, Math.max(5.5, needHalfW / (halfV * aspect)));
+
+            if (aspect < 1.0) {
+                camera.position.set(0, 2.2, 1.0 + dist);
+                camera.lookAt(0, -1.8, 0.1);
+            } else {
+                camera.position.set(0, 2.0, 1.2 + dist);
+                camera.lookAt(0, -1.75, 0.2);
+            }
+            camera.updateProjectionMatrix();
+        }
+
+        function initThreeScene() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xfcefe3);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            fitCamera();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.65);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffedd5, 0.85);
+            sunLight.position.set(5, 8, 4);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            sunLight.shadow.bias = -0.001;
+            scene.add(sunLight);
+            window.__amb = ambientLight; window.__sun = sunLight;
+
+            roomGroup = new THREE.Group();
+            scene.add(roomGroup);
+
+            const ringGeo = new THREE.RingGeometry(0.5, 0.62, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+            decorSelectionRing = new THREE.Mesh(ringGeo, ringMat);
+            decorSelectionRing.rotation.x = -Math.PI / 2;
+            decorSelectionRing.position.y = FLOOR_Y + 0.015;
+            decorSelectionRing.visible = false;
+            roomGroup.add(decorSelectionRing);
+
+            buildRoomInterior();
+            rebuildRoomDecorAndCats();
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('orientationchange', onWindowResize);
+            window.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+        }
+
+        const street = { cars: [], clouds: [], skyMat: null, skyDay: null, skySunset: null, skyNight: null, glow: [] };
+
+        function canvasTex(w, h, draw, repeat) {
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            draw(c.getContext('2d'), w, h);
+            const t = new THREE.CanvasTexture(c);
+            t.encoding = THREE.sRGBEncoding;
+            if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            return t;
+        }
+
+        function paintStreet(type) {
+            return canvasTex(2048, 1024, (g, W, H) => {
+                const sky = g.createLinearGradient(0, 0, 0, H * 0.62);
+                if (type === 'night') {
+                    sky.addColorStop(0, '#0b1230'); sky.addColorStop(1, '#3d4a82');
+                } else if (type === 'sunset') {
+                    sky.addColorStop(0, '#701a75'); sky.addColorStop(0.5, '#f43f5e'); sky.addColorStop(1, '#fed7aa');
+                } else {
+                    sky.addColorStop(0, '#6fbdf0'); sky.addColorStop(0.55, '#bfe3f7'); sky.addColorStop(1, '#fde7cf');
+                }
+                g.fillStyle = sky; g.fillRect(0, 0, W, H);
+
+                if (type === 'night') {
+                    g.fillStyle = '#fff';
+                    for (let i = 0; i < 160; i++) {
+                        g.globalAlpha = 0.4 + Math.random() * 0.6;
+                        g.fillRect(Math.random() * W, Math.random() * H * 0.45, 2, 2);
+                    }
+                    g.globalAlpha = 1; g.fillStyle = '#fff6d6'; g.beginPath(); g.arc(W * 0.78, H * 0.26, 46, 0, 7); g.fill();
+                } else if (type === 'sunset') {
+                    g.fillStyle = 'rgba(255,237,160,0.95)'; g.beginPath(); g.arc(W * 0.4, H * 0.42, 54, 0, 7); g.fill();
+                } else {
+                    g.fillStyle = 'rgba(255,244,200,0.9)'; g.beginPath(); g.arc(W * 0.2, H * 0.27, 52, 0, 7); g.fill();
+                }
+
+                const base = H * 0.62;
+                g.fillStyle = (type === 'night') ? '#232a52' : ((type === 'sunset') ? '#4c1d95' : '#b4c6e6');
+                for (let x = 0; x < W; x += 70) g.fillRect(x, base - 90 - Math.random() * 130, 62, 400);
+
+                const pal = (type === 'night') ? ['#4a4468', '#3f4f6e', '#5a4a62'] : ['#f6c6d0', '#fde2a8', '#bfe0d2', '#c9d6f5'];
+                let x = -20, i = 0;
+                while (x < W) {
+                    const w = 150 + Math.random() * 110, h = 190 + Math.random() * 230;
+                    g.fillStyle = pal[i++ % pal.length]; g.fillRect(x, base - h, w, h);
+                    g.fillStyle = (type === 'night') ? '#2a2f55' : '#f4a7b9'; g.fillRect(x - 4, base - h - 12, w + 8, 14);
+                    for (let wy = base - h + 26; wy < base - 40; wy += 46) {
+                        for (let wx = x + 16; wx < x + w - 28; wx += 40) {
+                            g.fillStyle = (type === 'night') ? (Math.random() < 0.55 ? '#ffd978' : '#273056') : '#9fd0ec'; g.fillRect(wx, wy, 24, 30);
+                        }
+                    }
+                    x += w + 8;
+                }
+                g.fillStyle = (type === 'night') ? '#6b6674' : '#e9e1d5'; g.fillRect(0, base, W, H * 0.07);
+                g.fillStyle = (type === 'night') ? '#262a3a' : '#6b7280'; g.fillRect(0, base + H * 0.07, W, H * 0.2);
+                g.fillStyle = '#d8d2a8'; for (let lx = 20; lx < W; lx += 150) g.fillRect(lx, base + H * 0.165, 80, 8);
+                g.fillStyle = (type === 'night') ? '#1a1d2b' : '#d6cdbf'; g.fillRect(0, base + H * 0.27, W, H);
+            });
+        }
+
+        function sc(hex) { return new THREE.Color(hex).convertSRGBToLinear(); }
+        function catMat(hex, rough) { return new THREE.MeshStandardMaterial({ color: sc(hex), roughness: rough === undefined ? 0.85 : rough }); }
+        function catBasic(hex, extra) { return new THREE.MeshBasicMaterial(Object.assign({ color: sc(hex) }, extra || {})); }
+        function addMesh(parent, geo, mat, x, y, z, sx, sy, sz) {
+            const m = new THREE.Mesh(geo, mat);
+            m.position.set(x || 0, y || 0, z || 0);
+            if (sx !== undefined) m.scale.set(sx, sy, sz);
+            parent.add(m);
+            return m;
+        }
+
+        let floorMeshRef = null;
+        let wallMeshesRef = [];
+
+        function buildRoomInterior() {
+            const shell = new THREE.Group();
+            const F = FLOOR_Y, HW = BOX_W / 2, HD = BOX_D / 2;
+            const add = (m, x, y, z, rx, ry) => { m.position.set(x, y, z); if (rx) m.rotation.x = rx; if (ry) m.rotation.y = ry; shell.add(m); return m; };
+            const box = (w, h, d, hex, rough) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), catMat(hex, rough === undefined ? 0.7 : rough));
+
+            // Wood plank floor
+            const floorTex = canvasTex(512, 512, (g, W, H) => {
+                for (let r = 0; r < 8; r++) {
+                    const l = 62 + Math.random() * 8; g.fillStyle = `hsl(32,${48 + Math.random() * 8}%,${l}%)`; g.fillRect(0, r * 64, W, 64);
+                    g.fillStyle = 'rgba(90,50,20,0.35)'; g.fillRect(0, r * 64, W, 3);
+                    const off = Math.random() * W; g.fillRect(off, r * 64, 3, 64);
+                }
+            }, true);
+            floorTex.repeat.set(BOX_W / 3.2, BOX_D / 3.2);
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(BOX_W, BOX_D), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.55 }));
+            floor.receiveShadow = true; floor.userData.isFloor = true;
+            add(floor, 0, F, 0, -Math.PI / 2);
+            floorMeshRef = floor;
+
+            // RUG WITH BEAUTIFUL CALLIGRAPHY NAME: "LINA 💕"
+            const rugTex = canvasTex(1024, 512, (ctx, W, H) => {
+                // Soft gradient velvet oval base
+                ctx.fillStyle = '#fce7f3'; // pastel rose
+                ctx.beginPath(); ctx.ellipse(W / 2, H / 2, W * 0.48, H * 0.48, 0, 0, Math.PI * 2); ctx.fill();
+
+                // Inner cream ring
+                ctx.fillStyle = '#fffdfa';
+                ctx.beginPath(); ctx.ellipse(W / 2, H / 2, W * 0.43, H * 0.43, 0, 0, Math.PI * 2); ctx.fill();
+
+                // Delicate dotted lace border
+                ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 6; ctx.setLineDash([12, 14]);
+                ctx.beginPath(); ctx.ellipse(W / 2, H / 2, W * 0.455, H * 0.455, 0, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]);
+
+                // CALLIGRAPHY NAME: "Lina 💕"
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#db2777'; // deep romantic rose
+                ctx.shadowColor = 'rgba(219, 39, 119, 0.25)'; ctx.shadowBlur = 12;
+                ctx.font = 'bold italic 110px "Dancing Script", "Playfair Display", "Caveat", cursive, sans-serif';
+                ctx.fillText('Lina 💕', W / 2, H / 2 - 8);
+
+                // Small decorative hearts and cat paws
+                ctx.font = '36px sans-serif';
+                ctx.fillText('🐾', W / 2 - 190, H / 2);
+                ctx.fillText('🐾', W / 2 + 190, H / 2);
+            });
+            const rug = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 2.7), new THREE.MeshStandardMaterial({ map: rugTex, transparent: true, roughness: 0.9 }));
+            rug.rotation.x = -Math.PI / 2;
+            rug.receiveShadow = true;
+            add(rug, 0, F + 0.015, 0.85);
+
+            // Wallpaper texture
+            const wallTex = canvasTex(256, 512, (g, W, H) => {
+                g.fillStyle = '#fff4e2'; g.fillRect(0, 0, W, H);
+                g.fillStyle = 'rgba(244,166,184,0.16)'; for (let x = 0; x < W; x += 64) g.fillRect(x, 0, 24, H * 0.68);
+                g.fillStyle = '#f6dcc6'; g.fillRect(0, H * 0.68, W, H);
+                g.strokeStyle = 'rgba(150,100,70,0.35)'; g.lineWidth = 3; for (let x = 10; x < W; x += 128) g.strokeRect(x, H * 0.72, 108, H * 0.22);
+                g.fillStyle = '#fffaf0'; g.fillRect(0, H * 0.675, W, 8);
+            }, true);
+            const wallPlane = (w, h, u0, v0) => {
+                const t = wallTex.clone(); t.needsUpdate = true; t.repeat.set(w / 2.5, h / BOX_H); t.offset.set(u0 / 2.5, v0 / BOX_H);
+                const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: t, roughness: 0.95 })); m.receiveShadow = true;
+                wallMeshesRef.push(m);
+                return m;
+            };
+
+            const WX = 2.4, WB = 1.3, WT = 4.4, zb = -HD;
+            add(wallPlane(HW - WX, BOX_H, 0, 0), -(HW + WX) / 2, F + BOX_H / 2, zb);
+            add(wallPlane(HW - WX, BOX_H, HW + WX, 0), (HW + WX) / 2, F + BOX_H / 2, zb);
+            add(wallPlane(WX * 2, WB, HW - WX, 0), 0, F + WB / 2, zb);
+            add(wallPlane(WX * 2, BOX_H - WT, HW - WX, WT), 0, F + (WT + BOX_H) / 2, zb);
+            add(wallPlane(BOX_D, BOX_H, 0, 0), -HW, F + BOX_H / 2, 0, 0, Math.PI / 2);
+            add(wallPlane(BOX_D, BOX_H, 0, 0), HW, F + BOX_H / 2, 0, 0, -Math.PI / 2);
+
+            // Sky backdrop
+            const sky = new THREE.Mesh(new THREE.PlaneGeometry(18, 9), new THREE.MeshBasicMaterial({ map: paintStreet('day') }));
+            street.skyDay = sky.material.map;
+            street.skySunset = paintStreet('sunset');
+            street.skyNight = paintStreet('night');
+            street.skyMat = sky.material;
+            add(sky, 0, -1.4, -13);
+
+            // 3D STREET LAMPS OUTSIDE (LIT FROM 18H TO 6H)
+            const makeStreetLamp = (x, z) => {
+                const lampGroup = new THREE.Group();
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 2.5, 8), catMat(0x374151)); pole.position.y = 1.25; lampGroup.add(pole);
+                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 8), catMat(0x374151)); arm.rotation.z = Math.PI / 3; arm.position.set(0.15, 2.45, 0); lampGroup.add(arm);
+                const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), new THREE.MeshStandardMaterial({ color: 0xfff3c4, emissive: 0xffd966, emissiveIntensity: 0.1 }));
+                bulb.position.set(0.3, 2.45, 0); lampGroup.add(bulb);
+                lampGroup.position.set(x, -1.8, z);
+                shell.add(lampGroup);
+                street.glow.push(bulb);
+            };
+            makeStreetLamp(-2.5, -4.5);
+            makeStreetLamp(2.5, -4.5);
+
+            // 3D CARS & MOTORBIKES (SEPARATE LANES & ANTI-COLLISION)
+            buildStreetTraffic(shell);
+
+            // Window frame & curtains
+            const wood = 0xd9b48a, cy = F + (WB + WT) / 2, ch = WT - WB, fz = zb + 0.12;
+            add(box(WX * 2 + 0.3, 0.14, 0.2, wood), 0, F + WT + 0.07, fz);
+            add(box(0.14, ch, 0.2, wood), -WX - 0.07, cy, fz); add(box(0.14, ch, 0.2, wood), WX + 0.07, cy, fz);
+            add(box(WX * 2 + 0.7, 0.1, 0.5, 0xf2dcc0), 0, F + WB - 0.05, zb + 0.25);
+            add(box(0.08, ch, 0.08, wood), 0, cy, fz); add(box(WX * 2, 0.08, 0.08, wood), 0, cy + 0.2, fz);
+            const glass = new THREE.Mesh(new THREE.PlaneGeometry(WX * 2, ch), new THREE.MeshBasicMaterial({ color: 0xdff1ff, transparent: true, opacity: 0.1, depthWrite: false }));
+            add(glass, 0, cy, zb + 0.1);
+            add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 6.4, 10), catMat(0xb08968)), 0, F + WT + 0.45, zb + 0.35, 0).rotation.z = Math.PI / 2;
+            [-1, 1].forEach(s => {
+                for (let k = 0; k < 3; k++) {
+                    const c = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 3.5, 12), catMat(k % 2 ? 0xf7a8bf : 0xfbc3d2, 0.9));
+                    c.castShadow = true; add(c, s * (2.7 + k * 0.2), F + 2.85, zb + 0.4);
+                }
+            });
+
+            roomGroup.add(shell);
+        }
+
+        // MOTORBIKES & CARS WITH COLLISION PREVENTION IN 2 DISTINCT LANES
+        function buildStreetTraffic(parent) {
+            streetVehicles = [];
+
+            // 1. CAR BUILDER
+            const carMk = (hex) => {
+                const g = new THREE.Group();
+                const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.36, 0.68), catMat(hex, 0.4)); body.position.y = 0.3; g.add(body);
+                const cab = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.3, 0.62), catMat(0xe6f2fb, 0.2)); cab.position.set(-0.05, 0.62, 0); g.add(cab);
+                [[-0.45, 0.33], [0.45, 0.33], [-0.45, -0.33], [0.45, -0.33]].forEach(([x, z]) => {
+                    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.08, 12), catMat(0x1f2937));
+                    w.rotation.x = Math.PI / 2; w.position.set(x, 0.14, z); g.add(w);
+                });
+                return g;
+            };
+
+            // 2. MOTORBIKE WITH RIDER BUILDER (VIETNAM STYLE)
+            const bikeMk = (hex) => {
+                const g = new THREE.Group();
+                // Bike body & wheels
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.15), catMat(hex, 0.5)); frame.position.y = 0.25; g.add(frame);
+                [-0.32, 0.32].forEach(x => {
+                    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.05, 12), catMat(0x111827));
+                    w.rotation.x = Math.PI / 2; w.position.set(x, 0.14, 0); g.add(w);
+                });
+                // Handlebar
+                const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.35, 8), catMat(0xd1d5db));
+                bar.rotation.x = Math.PI / 2; bar.position.set(0.25, 0.46, 0); g.add(bar);
+                // Rider: body + head with helmet
+                const riderBody = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.35, 0.22), catMat(0x3b82f6)); riderBody.position.set(-0.05, 0.52, 0); g.add(riderBody);
+                const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), catMat(0xf43f5e)); helmet.position.set(-0.05, 0.78, 0); g.add(helmet);
+                return g;
+            };
+
+            // LANE 1 (Near Lane: Z = -4.8, Motorbikes & Mini Car, Speed = 1.0, Direction = 1)
+            const lane1Data = [
+                { type: 'bike', col: 0xef4444, x: -6, sp: 1.1 },
+                { type: 'bike', col: 0x10b981, x: -2.5, sp: 1.1 },
+                { type: 'car',  col: 0xfacc15, x: 2.0, sp: 1.1 }
+            ];
+            lane1Data.forEach(d => {
+                const v = d.type === 'bike' ? bikeMk(d.col) : carMk(d.col);
+                v.position.set(d.x, -1.8, -4.8);
+                v.userData = { sp: d.sp, lane: 1, minX: -7.5, maxX: 7.5 };
+                parent.add(v);
+                streetVehicles.push(v);
+            });
+
+            // LANE 2 (Far Lane: Z = -5.8, Cars, Speed = -0.85, Direction = -1)
+            const lane2Data = [
+                { type: 'car', col: 0x3b82f6, x: -4, sp: -0.9 },
+                { type: 'car', col: 0xf472b6, x: 1.5, sp: -0.9 }
+            ];
+            lane2Data.forEach(d => {
+                const v = carMk(d.col);
+                v.position.set(d.x, -1.8, -5.8);
+                v.rotation.y = Math.PI; // Heading opposite direction
+                v.userData = { sp: d.sp, lane: 2, minX: -7.5, maxX: 7.5 };
+                parent.add(v);
+                streetVehicles.push(v);
+            });
+        }
+
+        function animateStreetTraffic(dt) {
+            // Move vehicles without overlapping (Keep minimum 2.5m spacing in each lane)
+            for (let lane = 1; lane <= 2; lane++) {
+                const vehs = streetVehicles.filter(v => v.userData.lane === lane);
+                vehs.forEach(v => {
+                    v.position.x += v.userData.sp * dt;
+                    if (v.userData.sp > 0 && v.position.x > v.userData.maxX) v.position.x = v.userData.minX;
+                    if (v.userData.sp < 0 && v.position.x < v.userData.minX) v.position.x = v.userData.maxX;
+                });
+            }
+        }
+
+        /********************************************************************
+         * 6. 3D MODELS (CAT WHEEL, EXACT LITTER BOX & AUTOMATIC FEEDER)
+         ********************************************************************/
+        function createDecorMesh(decorId) {
+            const g = new THREE.Group();
+            const F = FLOOR_Y;
+            const put = (geo, mat, x, y, z, sx, sy, sz, shadow) => {
+                const m = addMesh(g, geo, mat, x, y, z, sx, sy, sz);
+                m.castShadow = shadow !== false;
+                m.receiveShadow = true;
+                return m;
+            };
+
+            if (decorId === 'food_station') {
+                /*
+                 * 2-in-1 Automatic Cat Feeder & Waterer Station (Exact Match to Image 5)
+                 */
+                const whiteBody = catMat(0xffffff, 0.4);
+                const slateGrey = catMat(0x64748b, 0.5);
+                const glassMat = new THREE.MeshStandardMaterial({ color: sc(0xdff1ff), roughness: 0.1, transparent: true, opacity: 0.55, metalness: 0.1 });
+                const waterInside = new THREE.MeshStandardMaterial({ color: sc(0x38bdf8), roughness: 0.05, transparent: true, opacity: 0.7 });
+                const kibbleColor = catMat(0x78350f, 0.9);
+                const meatCubeColor = catMat(0xfef08a, 0.85);
+
+                put(new THREE.BoxGeometry(1.0, 0.08, 0.65), whiteBody, 0, F + 0.04, 0);
+
+                // Water bottle
+                put(new THREE.CylinderGeometry(0.18, 0.18, 0.06, 24), whiteBody, -0.26, F + 0.11, -0.06);
+                put(new THREE.CylinderGeometry(0.16, 0.16, 0.48, 24), glassMat, -0.26, F + 0.38, -0.06);
+                put(new THREE.SphereGeometry(0.16, 24, 16), glassMat, -0.26, F + 0.62, -0.06, 1, 0.5, 1);
+                put(new THREE.CylinderGeometry(0.145, 0.145, 0.44, 20), waterInside, -0.26, F + 0.36, -0.06);
+
+                // Water dish
+                put(new THREE.BoxGeometry(0.32, 0.05, 0.22), slateGrey, -0.26, F + 0.08, 0.18);
+                put(new THREE.BoxGeometry(0.28, 0.03, 0.18), waterInside, -0.26, F + 0.1, 0.18);
+
+                // Food tower
+                put(new THREE.BoxGeometry(0.38, 0.68, 0.36), whiteBody, 0.26, F + 0.42, -0.06);
+                put(new THREE.BoxGeometry(0.40, 0.05, 0.38), slateGrey, 0.26, F + 0.78, -0.06);
+                put(new THREE.BoxGeometry(0.22, 0.14, 0.12), whiteBody, 0.26, F + 0.15, 0.12);
+
+                // Food bowl
+                put(new THREE.CylinderGeometry(0.20, 0.18, 0.08, 24), whiteBody, 0.26, F + 0.08, 0.18);
+
+                const foodGroup = new THREE.Group();
+                foodGroup.position.set(0.26, F + 0.1, 0.18);
+                for (let i = 0; i < 18; i++) {
+                    const ang = Math.random() * Math.PI * 2;
+                    const r = Math.random() * 0.12;
+                    if (i % 3 === 0) {
+                        addMesh(foodGroup, new THREE.BoxGeometry(0.035, 0.035, 0.035), meatCubeColor, Math.cos(ang) * r, 0.02 + Math.random() * 0.02, Math.sin(ang) * r);
+                    } else {
+                        addMesh(foodGroup, new THREE.SphereGeometry(0.022, 8, 8), kibbleColor, Math.cos(ang) * r, 0.015 + Math.random() * 0.02, Math.sin(ang) * r);
+                    }
+                }
+                foodGroup.visible = state.foodBowlPercent > 0;
+                foodGroup.scale.set(1, (state.foodBowlPercent / 100) * 1.0, 1);
+                g.add(foodGroup);
+                foodBowlKibbleMesh = foodGroup;
+
+            } else if (decorId === 'litter_box') {
+                /*
+                 * 2-Tone Grey & Cream Cat Litter Box with Splash Guard & Filter Step (Exact Match to Image 4)
+                 */
+                const darkTubGrey = catMat(0x3f434a, 0.6);
+                const creamHood = catMat(0xede8dc, 0.5);
+                const sandMat = catMat(0x9ca3af, 0.95);
+                const dirtyMat = catMat(0x52525b, 0.95);
+
+                put(new THREE.BoxGeometry(1.05, 0.18, 0.8), darkTubGrey, 0, F + 0.09, 0);
+
+                // High splash hood
+                put(new THREE.BoxGeometry(1.05, 0.28, 0.06), creamHood, 0, F + 0.32, -0.37);
+                [-0.5, 0.5].forEach(s => {
+                    put(new THREE.BoxGeometry(0.06, 0.28, 0.8), creamHood, s, F + 0.32, 0);
+                });
+                put(new THREE.BoxGeometry(0.35, 0.1, 0.06), creamHood, -0.35, F + 0.23, 0.37);
+                put(new THREE.BoxGeometry(0.35, 0.1, 0.06), creamHood, 0.35, F + 0.23, 0.37);
+
+                // Perforated litter step
+                const stepTex = canvasTex(128, 64, (ctx, W, H) => {
+                    ctx.fillStyle = '#ede8dc'; ctx.fillRect(0, 0, W, H);
+                    ctx.fillStyle = '#9ca3af';
+                    for (let y = 8; y < H; y += 12) {
+                        for (let x = 8; x < W; x += 12) {
+                            ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+                        }
+                    }
+                }, true);
+                const stepMesh = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.03, 0.22), new THREE.MeshStandardMaterial({ map: stepTex, roughness: 0.7 }));
+                stepMesh.position.set(0, F + 0.19, 0.26);
+                stepMesh.receiveShadow = true;
+                g.add(stepMesh);
+
+                put(new THREE.BoxGeometry(0.9, 0.1, 0.55), sandMat, 0, F + 0.14, -0.06);
+
+                const dirtGroup = new THREE.Group();
+                dirtGroup.position.set(0, F + 0.19, -0.06);
+                [[-0.18, 0.08], [0.15, -0.06], [-0.02, 0.14]].forEach(([dx, dz]) => {
+                    addMesh(dirtGroup, new THREE.SphereGeometry(0.045, 8, 8), dirtyMat, dx, 0, dz, 1.2, 0.6, 1.0);
+                });
+                dirtGroup.visible = (state.litterCleanliness < 90);
+                g.add(dirtGroup);
+                litterBoxDirtGroup = dirtGroup;
+
+                // Scoop on right side
+                const scoopGroup = new THREE.Group();
+                scoopGroup.position.set(0.56, F + 0.28, 0.15);
+                scoopGroup.rotation.z = -0.15;
+                addMesh(scoopGroup, new THREE.BoxGeometry(0.04, 0.12, 0.06), creamHood, 0, 0, 0);
+                addMesh(scoopGroup, new THREE.CylinderGeometry(0.012, 0.012, 0.18, 8), creamHood, 0, 0.12, 0);
+                g.add(scoopGroup);
+
+            } else if (decorId === 'cat_wheel') {
+                /*
+                 * Hamster-Style Giant Cat Running Exercise Wheel
+                 */
+                const wheelMat = catMat(0x38bdf8, 0.6); // cyan/blue running wheel
+                const baseStand = catMat(0xffffff, 0.5);
+
+                // Base support stand
+                put(new THREE.BoxGeometry(0.9, 0.1, 0.7), baseStand, 0, F + 0.05, 0);
+                put(new THREE.CylinderGeometry(0.05, 0.06, 1.3, 12), baseStand, 0, F + 0.7, -0.25);
+
+                // Rotating drum
+                const drum = new THREE.Group();
+                drum.position.set(0, F + 0.85, 0);
+
+                // Big hollow outer cylinder wheel
+                const track = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.45, 32, 1, true), wheelMat);
+                track.rotation.x = Math.PI / 2;
+                drum.add(track);
+
+                // Inner rim spokes
+                for (let i = 0; i < 4; i++) {
+                    const spoke = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.03, 0.03), baseStand);
+                    spoke.rotation.z = (i * Math.PI) / 4;
+                    drum.add(spoke);
+                }
+                g.add(drum);
+                catWheelDrum = drum;
+
+            } else if (decorId === 'cat_tree') {
+                // Multi-Tier Cat Tree
+                const sisal = catMat(0xd9b98c, 1), cream = catMat(0xfff6e0, 0.8), pinkM = catMat(0xf9a8c0, 0.9);
+                put(new THREE.BoxGeometry(1.2, 0.14, 1.2), catMat(0xb08968), 0, F + 0.07, 0);
+                put(new THREE.CylinderGeometry(0.12, 0.12, 2.4, 14), sisal, 0, F + 1.3, 0);
+                put(new THREE.CylinderGeometry(0.1, 0.1, 1.0, 14), sisal, 0.4, F + 0.55, 0.1);
+
+                // Tier 1 Platform (y = F + 1.05)
+                put(new THREE.CylinderGeometry(0.58, 0.58, 0.1, 24), cream, 0.4, F + 1.05, 0.1);
+
+                // Tier 2 Platform (y = F + 1.75)
+                put(new THREE.CylinderGeometry(0.52, 0.52, 0.1, 24), cream, -0.35, F + 1.75, 0);
+
+                // Tier 3 Top Hammock (y = F + 2.5)
+                put(new THREE.TorusGeometry(0.46, 0.14, 10, 24), pinkM, 0, F + 2.5, 0, 1, 1, 1).rotation.x = Math.PI / 2;
+                put(new THREE.CylinderGeometry(0.42, 0.42, 0.18, 22), cream, 0, F + 2.48, 0);
+
+                const t = put(new THREE.CylinderGeometry(0.008, 0.008, 0.5, 5), catMat(0x888888), 0.5, F + 0.78, 0.5);
+                put(new THREE.SphereGeometry(0.09, 10, 8), catMat(0xef4444, 0.4), 0.5, F + 0.5, 0.5);
+
+            } else if (decorId === 'cardboard_box') {
+                const kraftBrown = catMat(0xd97706, 0.9);
+                put(new THREE.BoxGeometry(0.85, 0.38, 0.65), kraftBrown, 0, F + 0.19, 0);
+                put(new THREE.BoxGeometry(0.77, 0.34, 0.57), catMat(0xb45309, 0.9), 0, F + 0.21, 0);
+
+            } else if (decorId === 'catnip_pot') {
+                const ceramic = catMat(0xffffff, 0.5);
+                put(new THREE.CylinderGeometry(0.22, 0.16, 0.32, 20), ceramic, 0, F + 0.16, 0);
+                put(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 20), catMat(0x3f2e21), 0, F + 0.32, 0);
+                for (let i = 0; i < 9; i++) {
+                    const a = i * 0.7;
+                    const leaf = put(new THREE.SphereGeometry(0.12, 8, 8), catMat(0x22c55e, 0.8), Math.cos(a) * 0.12, F + 0.42 + (i % 3) * 0.06, Math.sin(a) * 0.12, 1.2, 0.6, 1.0);
+                    leaf.rotation.z = Math.cos(a) * 0.4;
+                }
+
+            } else if (decorId === 'yarn_ball') {
+                const yarnCol = catMat(0xf43f5e, 0.85);
+                put(new THREE.SphereGeometry(0.16, 16, 14), yarnCol, 0, F + 0.16, 0);
+
+            } else if (decorId === 'donut_bed') {
+                const dough = catMat(0xfcd34d, 0.9);
+                const icing = catMat(0xf472b6, 0.8);
+                const ring = put(new THREE.TorusGeometry(0.5, 0.22, 14, 28), dough, 0, F + 0.2, 0); ring.rotation.x = Math.PI / 2;
+                const topIcing = put(new THREE.TorusGeometry(0.5, 0.16, 10, 28), icing, 0, F + 0.28, 0); topIcing.rotation.x = Math.PI / 2;
+
+            } else if (decorId.includes('sakura')) {
+                const pink = decorId.includes('right');
+                put(new THREE.CylinderGeometry(0.34, 0.24, 0.42, 18), catMat(0xc2693e, 0.8), 0, F + 0.21, 0);
+                put(new THREE.CylinderGeometry(0.3, 0.3, 0.04, 18), catMat(0x4a3224, 1), 0, F + 0.4, 0);
+                put(new THREE.CylinderGeometry(0.06, 0.11, 1.4, 10), catMat(0x6b4a35), 0, F + 1.1, 0);
+                [-1, 1].forEach(s => { const br = put(new THREE.CylinderGeometry(0.03, 0.05, 0.7, 8), catMat(0x6b4a35), s * 0.25, F + 1.65, 0); br.rotation.z = -s * 0.6; });
+                const cols = pink ? [0xffb7c5, 0xffc9d4, 0xff9fb5] : [0xffffff, 0xf7f3f8, 0xffe8ef];
+                [[0, 2.0, 0, 0.7], [0.5, 1.8, 0.1, 0.5], [-0.5, 1.85, -0.05, 0.55], [0.25, 2.5, 0, 0.45], [-0.3, 2.4, 0.1, 0.42], [0, 1.75, 0.45, 0.4]].forEach(([a, b, c, r], i) => {
+                    put(new THREE.SphereGeometry(r, 16, 14), catMat(cols[i % 3], 0.75), a, F + b, c);
+                });
+
+            } else if (decorId === 'wood_arch') {
+                const w = catMat(0xc99a6b, 0.8);
+                [-0.95, 0.95].forEach(s => put(new THREE.CylinderGeometry(0.1, 0.12, 1.9, 12), w, s, F + 0.95, 0));
+                const arc = put(new THREE.TorusGeometry(0.95, 0.1, 10, 28, Math.PI), w, 0, F + 1.9, 0);
+                for (let i = 0; i < 9; i++) {
+                    const a = Math.PI * (i + 0.5) / 9;
+                    put(new THREE.SphereGeometry(0.1, 8, 8), catMat(i % 3 ? 0x6ec48b : 0xffa8c5, 0.8), Math.cos(a) * 0.95, F + 1.9 + Math.sin(a) * 0.95, 0.05, 1, 1, 1, false);
+                }
+
+            } else if (decorId === 'cozy_bed') {
+                const ring = put(new THREE.TorusGeometry(0.52, 0.17, 12, 28), catMat(0xf472b6, 0.9), 0, F + 0.17, 0); ring.rotation.x = Math.PI / 2;
+                put(new THREE.CylinderGeometry(0.5, 0.5, 0.18, 24), catMat(0xfde2e4, 1), 0, F + 0.1, 0);
+                put(new THREE.SphereGeometry(0.2, 12, 10), catMat(0xfff1f2, 1), 0.12, F + 0.26, 0, 1.3, 0.55, 1);
+
+            } else if (decorId === 'scratching_post') {
+                const cactusMat = catMat(0x22c55e, 0.85);
+                put(new THREE.CylinderGeometry(0.38, 0.42, 0.1, 20), catMat(0xd4a373, 0.8), 0, F + 0.05, 0);
+                put(new THREE.CylinderGeometry(0.13, 0.13, 1.2, 16), cactusMat, 0, F + 0.65, 0);
+                const arm1 = put(new THREE.TorusGeometry(0.18, 0.09, 8, 16, Math.PI / 2), cactusMat, -0.15, F + 0.8, 0); arm1.rotation.z = Math.PI / 2;
+                const arm2 = put(new THREE.TorusGeometry(0.18, 0.09, 8, 16, Math.PI / 2), cactusMat, 0.15, F + 0.55, 0); arm2.rotation.z = -Math.PI / 2;
+                put(new THREE.SphereGeometry(0.09, 10, 8), catMat(0xfacc15, 0.5), 0, F + 1.3, 0);
+
+            } else if (decorId === 'cat_tunnel') {
+                const fabricMat = catMat(0x818cf8, 0.8);
+                const tunnel = put(new THREE.CylinderGeometry(0.35, 0.35, 1.2, 20, 1, true), fabricMat, 0, F + 0.36, 0);
+                tunnel.rotation.z = Math.PI / 2;
+            }
+
+            g.userData.decorId = decorId;
+            return g;
+        }
+
+        function rebuildRoomDecorAndCats() {
+            while (roomGroup.children.length > 2) {
+                roomGroup.remove(roomGroup.children[2]);
+            }
+            catActors = [];
+            decorMeshes = {};
+
+            state.activeDecor.forEach(decorId => {
+                const mesh = createDecorMesh(decorId);
+                if (mesh) {
+                    const pos = state.decorPositions[decorId] || DEFAULT_DECOR_POSITIONS[decorId] || { x: 0, z: 0, rot: 0 };
+                    mesh.position.set(pos.x, 0, pos.z);
+                    mesh.rotation.y = pos.rot || 0;
+                    roomGroup.add(mesh);
+                    decorMeshes[decorId] = mesh;
+                }
+            });
+
+            state.cats.forEach((catData, idx) => {
+                const catActor = create3DCatMesh(catData);
+                const xOffset = state.cats.length === 1 ? 0 : (idx - (state.cats.length - 1) / 2) * 1.5;
+                catActor.mesh.position.set(xOffset, FLOOR_Y + 0.03, 0.3 + (idx % 2) * 1.1);
+                roomGroup.add(catActor.mesh);
+                catActors.push(catActor);
+            });
+
+            updateDecorSelectionRing();
+        }
+
+        /********************************************************************
+         * 7. 3D CHIBI CAT MODEL BUILDER (WITH NATURAL UPSIDE-DOWN BACK POSE)
+         ********************************************************************/
+        const furTextureCache = {};
+        function hexToCss(hex) { return '#' + hex.toString(16).padStart(6, '0'); }
+
+        function getCatCoatTexture(breed, kind = 'body') {
+            const key = breed.id + '_' + kind;
+            if (furTextureCache[key]) return furTextureCache[key];
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const base = hexToCss(breed.bodyColor), stripe = hexToCss(breed.stripeColor), belly = hexToCss(breed.bellyColor);
+            ctx.fillStyle = base; ctx.fillRect(0, 0, 512, 256);
+            ctx.globalAlpha = 0.05;
+            for (let i = 0; i < 1500; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#000'; ctx.fillRect(Math.random() * 512, Math.random() * 256, 1.5, 6); }
+            const blob = (x, y, rx, ry, col, a) => { ctx.globalAlpha = a === undefined ? 1 : a; ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); };
+            if (kind === 'body') {
+                if (breed.pattern === 'tabby') {
+                    for (let x = 6; x < 512; x += 24) blob(x, 100, 5 + Math.random() * 3, 52 + Math.random() * 14, stripe, 0.6);
+                } else if (breed.pattern === 'calico') {
+                    blob(70, 80, 46, 40, '#ea580c'); blob(190, 90, 52, 42, '#1e293b'); blob(310, 70, 44, 38, '#f97316');
+                } else if (breed.pattern === 'siamese') {
+                    ctx.globalAlpha = 1; const g = ctx.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(120,85,70,0.55)'); g.addColorStop(0.45, 'rgba(120,85,70,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 256);
+                }
+            } else {
+                if (breed.pattern === 'tabby') { [-14, 0, 14].forEach(dx => blob(128 + dx, 62, 3.5, dx === 0 ? 24 : 17, stripe, 0.75)); }
+                else if (breed.pattern === 'calico') { blob(60, 85, 50, 48, '#ea580c'); blob(190, 80, 44, 44, '#1e293b'); }
+                else if (breed.pattern === 'siamese') { const g = ctx.createRadialGradient(128, 160, 5, 128, 160, 75); g.addColorStop(0, 'rgba(62,39,35,0.95)'); g.addColorStop(0.6, 'rgba(62,39,35,0.6)'); g.addColorStop(1, 'rgba(62,39,35,0)'); ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 256); }
+                else if (breed.pattern === 'tuxedo') { blob(128, 180, 40, 32, '#ffffff'); blob(128, 120, 9, 34, '#ffffff'); }
+                if (breed.pattern !== 'tuxedo' && breed.pattern !== 'siamese') blob(128, 182, 38, 26, belly, 0.95);
+            }
+            ctx.globalAlpha = 1;
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping; tex.needsUpdate = true;
+            furTextureCache[key] = tex;
+            return tex;
+        }
+
+        function create3DCatMesh(catData) {
+            const breed = CAT_BREEDS.find(b => b.id === catData.breedId) || CAT_BREEDS[0];
+            const root = new THREE.Group();
+            root.userData.catId = catData.id;
+
+            const lit = (tex) => new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
+            const bodyMat = lit(getCatCoatTexture(breed, 'body'));
+            const headMat = lit(getCatCoatTexture(breed, 'head'));
+            const solidMat = catMat(breed.bodyColor);
+            const bellyMat = catMat(breed.bellyColor);
+            const earMat = catMat(breed.earColor);
+            const innerEarMat = catMat(0xffb3c1, 0.6);
+            const dark = (breed.pattern === 'tuxedo' || breed.pattern === 'calico');
+            const pawMat = (dark ? bellyMat : (breed.pattern === 'siamese' ? earMat : solidMat));
+            const furry = breed.fluffy;
+
+            const bodyPivot = new THREE.Group();
+            bodyPivot.position.set(0, 0.4, 0);
+            root.add(bodyPivot);
+
+            const torso = addMesh(bodyPivot, new THREE.SphereGeometry(0.3, 28, 24), bodyMat, 0, 0, 0, furry ? 1.12 : 1.0, 0.9, 1.22);
+            torso.castShadow = true;
+            addMesh(bodyPivot, new THREE.SphereGeometry(0.24, 20, 18), bellyMat, 0, -0.08, 0.1, 0.9, 0.7, 1.1);
+
+            // Head (Child of bodyPivot)
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, 0.3, 0.36);
+            bodyPivot.add(headGroup);
+            const head = addMesh(headGroup, new THREE.SphereGeometry(0.36, 32, 28), headMat, 0, 0, 0, furry ? 1.22 : 1.12, 0.93, 1.0);
+            head.castShadow = true;
+            if (furry) {
+                addMesh(headGroup, new THREE.SphereGeometry(0.2, 16, 14), bellyMat, 0, -0.26, 0.1, 1.5, 0.7, 1.0);
+            }
+
+            // Eyes
+            const eyes = [];
+            const eyeBlack = catBasic(0x15151a), irisMat = new THREE.MeshStandardMaterial({ color: sc(breed.eyeColor), roughness: 0.25, emissive: sc(breed.eyeColor), emissiveIntensity: 0.25 });
+            const shine = catBasic(0xffffff);
+            [-1, 1].forEach(side => {
+                const eye = new THREE.Group();
+                eye.position.set(side * 0.16, 0.0, 0.3);
+                eye.rotation.y = side * 0.3;
+                addMesh(eye, new THREE.SphereGeometry(0.075, 20, 18), eyeBlack, 0, 0, 0, 1, 1.18, 0.5);
+                addMesh(eye, new THREE.SphereGeometry(0.058, 20, 18), irisMat, 0, -0.005, 0.014, 1, 1.12, 0.4);
+                addMesh(eye, new THREE.SphereGeometry(0.031, 16, 14), eyeBlack, 0, -0.005, 0.024, 0.8, 1.25, 0.3);
+                addMesh(eye, new THREE.SphereGeometry(0.02, 12, 10), shine, -0.016, 0.03, 0.034, 1, 1, 0.5);
+                headGroup.add(eye);
+                eyes.push(eye);
+            });
+
+            // Nose, mouth
+            addMesh(headGroup, new THREE.SphereGeometry(0.03, 12, 10), catMat(breed.noseColor || 0xf472b6, 0.35), 0, -0.065, 0.35, 1.25, 0.8, 0.8);
+            const mouthMat = catBasic(0x3b2a26);
+            [-1, 1].forEach(side => {
+                const m = addMesh(headGroup, new THREE.TorusGeometry(0.026, 0.0055, 6, 14, Math.PI), mouthMat, side * 0.026, -0.105, 0.343);
+                m.rotation.z = Math.PI;
+                const bl = addMesh(headGroup, new THREE.CircleGeometry(0.045, 16), catBasic(0xff7b9c, { transparent: true, opacity: 0.45, depthWrite: false }), side * 0.235, -0.07, 0.295);
+                bl.rotation.y = side * 0.65;
+            });
+
+            // Ears
+            const ears = [];
+            const folded = breed.earType === 'folded';
+            [-1, 1].forEach(side => {
+                const pivot = new THREE.Group();
+                pivot.position.set(side * 0.22, 0.25, -0.02);
+                pivot.rotation.z = -side * (folded ? 0.7 : 0.38);
+                if (folded) pivot.rotation.x = 0.55;
+                const h = folded ? 0.15 : 0.26;
+                const outer = addMesh(pivot, new THREE.ConeGeometry(0.13, h, 20), earMat, 0, h / 2 - 0.02, 0);
+                outer.scale.z = 0.55; outer.castShadow = true;
+                if (!folded) { const inner = addMesh(pivot, new THREE.ConeGeometry(0.085, h * 0.8, 16), innerEarMat, 0, h * 0.4 - 0.02, 0.03); inner.scale.z = 0.4; }
+                headGroup.add(pivot);
+                ears.push(pivot);
+            });
+
+            // Accessory
+            const accessoryGroup = new THREE.Group();
+            headGroup.add(accessoryGroup);
+            buildCatAccessoryMesh(accessoryGroup, catData.accessory || 'bell');
+
+            // Legs (Attached to bodyPivot so they flip properly when cat is on back)
+            const legs = [];
+            [[-0.15, 0.2], [0.15, 0.2], [-0.15, -0.2], [0.15, -0.2]].forEach(([x, z]) => {
+                const leg = new THREE.Group();
+                leg.position.set(x, -0.15, z);
+                const limb = addMesh(leg, new THREE.CylinderGeometry(0.075, 0.068, 0.2, 14), solidMat, 0, -0.1, 0);
+                limb.castShadow = true;
+                addMesh(leg, new THREE.SphereGeometry(0.08, 14, 12), pawMat, 0, -0.2, 0.012, 1, 0.62, 1.2);
+                bodyPivot.add(leg);
+                legs.push(leg);
+            });
+
+            // Tail
+            const tailSegments = [];
+            let parent = bodyPivot;
+            for (let i = 0; i < 7; i++) {
+                const seg = new THREE.Group();
+                if (i === 0) { seg.position.set(0, 0.0, -0.34); seg.rotation.x = -1.05; }
+                else { seg.position.set(0, 0.085, 0); seg.rotation.x = 0.16; }
+                const striped = breed.pattern === 'tabby' && i % 2 === 1;
+                const mat = (striped ? catMat(breed.stripeColor) : solidMat);
+                addMesh(seg, new THREE.SphereGeometry(0.055 - i * 0.002, 12, 10), mat, 0, 0.04, 0, 1, 1.45, 1);
+                parent.add(seg);
+                parent = seg;
+                tailSegments.push(seg);
+            }
+
+            const currentScale = getCatScale(catData.level || 1, catData.growthExp || 0);
+            root.scale.set(currentScale, currentScale, currentScale);
+
+            return {
+                id: catData.id, data: catData, breed, mesh: root, bodyPivot, headGroup, accessoryGroup, eyes, ears, legs, tailSegments,
+                aiState: 'wander', stateTimer: 2 + Math.random() * 4, moving: false, seed: Math.random() * 10,
+                targetPos: new THREE.Vector3((Math.random() - 0.5) * 6, FLOOR_Y + 0.03, -0.4 + Math.random() * 2.5),
+                walkPhase: Math.random() * 10, blinkTimer: 1 + Math.random() * 3, climbStep: 0, climbTimer: 0
+            };
+        }
+
+        function buildCatAccessoryMesh(group, accId) {
+            while (group.children.length > 0) group.remove(group.children[0]);
+            const gold = new THREE.MeshStandardMaterial({ color: sc(0xfbbf24), metalness: 0.5, roughness: 0.3 });
+            if (accId === 'sprout') {
+                const green = catMat(0x22c55e, 0.6);
+                addMesh(group, new THREE.CylinderGeometry(0.01, 0.014, 0.12, 8), green, 0, 0.37, 0.02);
+                [-1, 1].forEach(s => { const l = addMesh(group, new THREE.SphereGeometry(0.05, 12, 10), green, s * 0.045, 0.44, 0.02, 1.3, 0.5, 0.7); l.rotation.z = -s * 0.5; });
+            } else if (accId === 'crown') {
+                addMesh(group, new THREE.CylinderGeometry(0.1, 0.085, 0.07, 12), gold, 0, 0.36, 0.02);
+                for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; addMesh(group, new THREE.ConeGeometry(0.025, 0.07, 8), gold, Math.cos(a) * 0.085, 0.43, 0.02 + Math.sin(a) * 0.085); }
+                addMesh(group, new THREE.SphereGeometry(0.018, 8, 8), catMat(0xef4444, 0.3), 0, 0.37, 0.115);
+            } else if (accId === 'bow') {
+                const pink = catMat(0xff4d8d, 0.5);
+                [-1, 1].forEach(s => { const w = addMesh(group, new THREE.ConeGeometry(0.06, 0.11, 12), pink, 0.22 + s * 0.06, 0.28, 0.12); w.rotation.z = -s * Math.PI / 2; });
+                addMesh(group, new THREE.SphereGeometry(0.032, 10, 10), pink, 0.22, 0.28, 0.12);
+            } else if (accId === 'beret') {
+                addMesh(group, new THREE.SphereGeometry(0.2, 20, 14), catMat(0xdc2626, 0.8), 0.04, 0.32, 0.02, 1.0, 0.4, 1.0);
+                addMesh(group, new THREE.SphereGeometry(0.02, 8, 8), catMat(0x7f1d1d), 0.04, 0.42, 0.02);
+            } else {
+                const ring = addMesh(group, new THREE.TorusGeometry(0.2, 0.022, 8, 28), catMat(0xe11d48, 0.5), 0, -0.27, 0.06, 1.15, 1.0, 1.0);
+                ring.rotation.x = Math.PI / 2;
+                addMesh(group, new THREE.SphereGeometry(0.045, 14, 12), gold, 0, -0.3, 0.27);
+            }
+        }
+
+        // CAT POSES - LEGS AND HEAD PROPERLY STICKING UP WHEN ON BACK
+        const CAT_POSES = {
+            stand: { bodyY: 0.4, bodyRX: 0, bodyRZ: 0, headY: 0.3, headRX: 0, headRZ: 0, legY: -0.15, legRZ: 0, fSY: 1, hSY: 1, fRX: 0, hRX: 0, tailRX: -1.05, eye: 1 },
+            sit:   { bodyY: 0.38, bodyRX: -0.5, bodyRZ: 0, headY: 0.3, headRX: 0.45, headRZ: 0, legY: -0.12, legRZ: 0, fSY: 1.2, hSY: 0.7, fRX: 0, hRX: -1.3, tailRX: -1.25, eye: 1 },
+            lie:   { bodyY: 0.25, bodyRX: 0, bodyRZ: 0, headY: 0.27, headRX: 0.12, headRZ: 0, legY: -0.08, legRZ: 0, fSY: 0.5, hSY: 0.3, fRX: -1.4, hRX: 0, tailRX: -1.4, eye: 0.3 },
+            // WHEN ON BACK: Body rotated 180 deg around Z. Head tilted back flat. All 4 paws stick prominently straight UP in the air!
+            back:  { bodyY: 0.30, bodyRX: 0, bodyRZ: Math.PI, headY: 0.24, headRX: -0.28, headRZ: 0, legY: 0.05, legRZ: 0, fSY: 1.0, hSY: 1.0, fRX: 0.45, hRX: -0.45, tailRX: -0.5, eye: 0.12 },
+            eating:{ bodyY: 0.32, bodyRX: 0.35, bodyRZ: 0, headY: 0.18, headRX: 0.6, headRZ: 0, legY: -0.15, legRZ: 0, fSY: 0.9, hSY: 1.1, fRX: 0.2, hRX: -0.2, tailRX: -0.85, eye: 0.8 },
+            loaf:  { bodyY: 0.24, bodyRX: 0, bodyRZ: 0, headY: 0.26, headRX: 0.1, headRZ: 0, legY: -0.05, legRZ: 0, fSY: 0.2, hSY: 0.2, fRX: 0, hRX: 0, tailRX: -1.45, eye: 0.4 }
+        };
+
+        function animateCatParts(dt, t) {
+            catActors.forEach(a => {
+                if (!a.legs) return;
+                const mv = !!a.moving;
+                const poseKey = a.aiState === 'eating' ? 'eating' : (a.aiState === 'loaf' ? 'loaf' : (mv ? 'stand' : (CAT_POSES[a.aiState] ? a.aiState : 'stand')));
+                const P = CAT_POSES[poseKey];
+                if (!a.pose) a.pose = Object.assign({}, CAT_POSES.stand);
+                const k = Math.min(1, dt * 5.5);
+                for (const key in P) a.pose[key] += (P[key] - a.pose[key]) * k;
+                const p = a.pose;
+
+                if (mv) a.walkPhase += dt * (a.aiState === 'running_wheel' ? 8.5 : 5.5);
+                const sw = mv ? Math.sin(a.walkPhase) * 0.45 : 0;
+                const isEating = a.aiState === 'eating';
+
+                // If currently being dragged by user
+                if (isDraggingCat && draggedCatActor === a) {
+                    a.mesh.position.y = FLOOR_Y + 0.65; // Lift cat into the air
+                    a.bodyPivot.position.y = 0.4;
+                    a.bodyPivot.rotation.x = Math.sin(t * 8) * 0.1;
+                    a.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 10 + i) * 0.5; });
+                    return;
+                }
+
+                // If running on cat wheel
+                if (a.aiState === 'running_wheel') {
+                    const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
+                    a.mesh.position.set(wheelPos.x, FLOOR_Y + 0.15, wheelPos.z);
+                    a.mesh.rotation.y = 0;
+                    if (catWheelDrum) catWheelDrum.rotation.z += dt * 4.5;
+                } else if (a.aiState !== 'climbing') {
+                    a.mesh.position.y = FLOOR_Y + 0.03;
+                }
+
+                a.bodyPivot.position.y = p.bodyY + (mv ? Math.abs(Math.sin(a.walkPhase)) * 0.02 : (isEating ? Math.sin(t * 8) * 0.015 : Math.sin(t * 2 + a.seed) * 0.005));
+                a.bodyPivot.rotation.x = p.bodyRX;
+                a.bodyPivot.rotation.z = p.bodyRZ;
+                a.headGroup.position.y = p.headY + (isEating ? Math.sin(t * 8) * 0.025 : 0);
+                a.headGroup.rotation.x = p.headRX;
+                a.headGroup.rotation.z = p.headRZ;
+
+                a.legs.forEach((l, i) => {
+                    const front = i < 2, ph = (i === 0 || i === 3) ? 1 : -1;
+                    l.position.y = p.legY; l.rotation.z = p.legRZ;
+                    l.scale.y = front ? p.fSY : p.hSY;
+                    l.rotation.x = (front ? p.fRX : p.hRX) + sw * ph;
+                });
+                a.tailSegments.forEach((s, i) => {
+                    if (i === 0) s.rotation.x = p.tailRX;
+                    s.rotation.z = Math.sin(t * (isEating ? 5 : (mv ? 3 : 1.8)) + i * 0.6 + a.seed) * (0.05 + i * 0.03);
+                });
+
+                a.blinkTimer -= dt;
+                let b = 1;
+                if (a.blinkTimer < 0) { b = 0.1; if (a.blinkTimer < -0.12) a.blinkTimer = 2 + Math.random() * 4; }
+                const open = Math.max(0.1, Math.min(b, p.eye));
+                a.eyes.forEach(e => { e.scale.y = open; });
+            });
+        }
+
+        /********************************************************************
+         * 8. CAT AI, LASER CHASING & TREE CLIMBING LOGIC
+         ********************************************************************/
+        function updateCatsAI(dt) {
+            const effDt = dt * (state.gameSpeed === 0 ? 0 : (state.gameSpeed === 3 ? 2.2 : 1.0));
+            if (effDt <= 0) return;
+
+            const bowlPos = state.decorPositions['food_station'] || DEFAULT_DECOR_POSITIONS.food_station;
+            const treePos = state.decorPositions['cat_tree'] || DEFAULT_DECOR_POSITIONS.cat_tree;
+
+            catActors.forEach(actor => {
+                if (isDraggingCat && draggedCatActor === actor) return;
+
+                // 1. LASER POINTER CHASE (SMOOTH & RESPONSIVE FOLLOW)
+                if (laserActive) {
+                    actor.aiState = 'wander';
+                    actor.moving = true;
+                    const dx = laserTarget3D.x - actor.mesh.position.x;
+                    const dz = laserTarget3D.z - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.15) {
+                        actor.mesh.position.x += (dx / dist) * 1.1 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 1.1 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        // Reached laser dot: pounce playful action!
+                        actor.moving = false;
+                        actor.bodyPivot.position.y = 0.55;
+                    }
+                    return;
+                }
+
+                // 2. CAT TREE CLIMBING SEQUENCE (TIER 1 -> TIER 2 -> TOP HAMMOCK -> JUMP DOWN)
+                if (actor.aiState === 'climbing') {
+                    actor.climbTimer -= effDt;
+                    const p = actor.mesh.position;
+                    if (actor.climbStep === 1) { // Jump to Tier 1
+                        p.set(treePos.x + 0.4, FLOOR_Y + 1.15, treePos.z + 0.1);
+                        actor.mesh.rotation.y = 0;
+                        if (actor.climbTimer <= 0) { actor.climbStep = 2; actor.climbTimer = 1.8; }
+                    } else if (actor.climbStep === 2) { // Jump to Tier 2
+                        p.set(treePos.x - 0.35, FLOOR_Y + 1.85, treePos.z);
+                        if (actor.climbTimer <= 0) { actor.climbStep = 3; actor.climbTimer = 4.0; }
+                    } else if (actor.climbStep === 3) { // Jump to Top Hammock
+                        p.set(treePos.x, FLOOR_Y + 2.58, treePos.z);
+                        if (actor.climbTimer <= 0) {
+                            // Heroic jump down back to floor!
+                            p.set(treePos.x + 0.5, FLOOR_Y + 0.03, treePos.z + 0.5);
+                            actor.aiState = 'sit';
+                            actor.stateTimer = 4;
+                            playMeowSound(1.2);
+                            showFloatingNotification(`✨ ${actor.data.name} đã leo đỉnh tháp mèo và nhảy xuống điệu nghệ!`, '#8b5cf6', '🌳');
+                        }
+                    }
+                    return;
+                }
+
+                actor.stateTimer -= effDt;
+
+                // 3. EATING AT FOOD STATION
+                if (actor.aiState === 'eating') {
+                    const dx = (bowlPos.x + 0.35) - actor.mesh.position.x;
+                    const dz = (bowlPos.z + 0.35) - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.25) {
+                        actor.moving = true;
+                        actor.mesh.position.x += (dx / dist) * 0.65 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.65 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        actor.moving = false;
+                        actor.mesh.rotation.y = Math.atan2(bowlPos.x - actor.mesh.position.x, bowlPos.z - actor.mesh.position.z);
+                        if (state.foodBowlPercent > 0) {
+                            state.foodBowlPercent = Math.max(0, state.foodBowlPercent - effDt * 7);
+                            updateFoodBowlVisual();
+                        }
+                    }
+
+                    if (actor.stateTimer <= 0) {
+                        actor.aiState = 'sit';
+                        actor.stateTimer = 4;
+                    }
+                    return;
+                }
+
+                // 4. AUTONOMOUS BEHAVIOR CYCLE (Sleep, Play, Loaf, Wander)
+                if (actor.stateTimer <= 0) {
+                    const r = Math.random();
+                    // Occasionally autonomously run on wheel or climb tree
+                    if (r < 0.12 && state.activeDecor.includes('cat_wheel')) {
+                        commandCatEmote('wheel');
+                        return;
+                    } else if (r < 0.24 && state.activeDecor.includes('cat_tree')) {
+                        commandCatEmote('tree');
+                        return;
+                    }
+
+                    actor.aiState = r < 0.5 ? 'wander' : (r < 0.7 ? 'sit' : (r < 0.85 ? 'lie' : (r < 0.93 ? 'back' : 'loaf')));
+                    actor.stateTimer = actor.aiState === 'wander' ? 4 + Math.random() * 4 : 8 + Math.random() * 8;
+                    actor.targetPos.set((Math.random() - 0.5) * 6, FLOOR_Y + 0.03, -0.4 + Math.random() * 2.5);
+                }
+
+                actor.moving = false;
+                if (actor.aiState === 'wander') {
+                    const pos = actor.mesh.position;
+                    const dx = actor.targetPos.x - pos.x;
+                    const dz = actor.targetPos.z - pos.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.15) {
+                        actor.moving = true;
+                        pos.x += (dx / dist) * 0.45 * effDt;
+                        pos.z += (dz / dist) * 0.45 * effDt;
+                        const ty = Math.atan2(dx, dz);
+                        let d = ty - actor.mesh.rotation.y;
+                        d = Math.atan2(Math.sin(d), Math.cos(d));
+                        actor.mesh.rotation.y += d * Math.min(1, effDt * 3);
+                    }
+                }
+            });
+
+            // Keep cats separated
+            const minD = 0.95;
+            for (let i = 0; i < catActors.length; i++) {
+                for (let j = i + 1; j < catActors.length; j++) {
+                    const a = catActors[i].mesh.position, b = catActors[j].mesh.position;
+                    let dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
+                    if (d < minD) {
+                        if (d < 0.001) { dx = 0.1; dz = 0.1; d = 0.14; }
+                        const push = (minD - d) * 0.25;
+                        a.x -= (dx / d) * push; a.z -= (dz / d) * push;
+                        b.x += (dx / d) * push; b.z += (dz / d) * push;
+                    }
+                }
+            }
+        }
+
+        // REAL-TIME GROWTH: ~10 HOURS OF ONLINE CARE TO REACH LEVEL 3
+        function processRealtimeCatGrowth() {
+            const now = Date.now();
+            if (!state.lastGrowthCheck) state.lastGrowthCheck = now;
+            const elapsedSeconds = Math.max(0, (now - state.lastGrowthCheck) / 1000);
+            state.lastGrowthCheck = now;
+
+            state.cats.forEach(cat => {
+                const isFull = (cat.hunger || 0) >= 60;
+                const isLoved = (cat.love || 0) >= 60;
+                const isClean = (state.cleanliness || 0) >= 60;
+
+                // 200% EXP / 600 min = ~0.33% per min = ~0.0055% per sec
+                if (isFull && isLoved && isClean) {
+                    const expGain = elapsedSeconds * 0.0055;
+                    addCatGrowthExp(cat, expGain, 'Thời gian thực', true);
+                }
+
+                // Hunger decay: ~1% every 120s
+                cat.hunger = Math.max(10, (cat.hunger || 70) - (elapsedSeconds / 120));
+            });
+
+            state.cleanliness = Math.max(10, (state.cleanliness || 100) - (elapsedSeconds / 220));
+            state.hunger = Math.round(state.cats.reduce((acc, c) => acc + (c.hunger || 70), 0) / state.cats.length);
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            const dt = 0.016;
+            updateCatsAI(dt);
+            processRealtimeCatGrowth();
+            animateCatParts(dt, performance.now() / 1000);
+            animateStreetTraffic(dt);
+            renderer.render(scene, camera);
+        }
+
+        /********************************************************************
+         * 9. CAT EMOTE COMMANDS (ON COMMAND ANIMATIONS)
+         ********************************************************************/
+        function commandCatEmote(cmd) {
+            const actor = catActors.find(a => a.id === selectedCatId) || catActors[0];
+            if (!actor) return;
+            const treePos = state.decorPositions['cat_tree'] || DEFAULT_DECOR_POSITIONS.cat_tree;
+            const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
+            const boxPos = state.decorPositions['cardboard_box'] || DEFAULT_DECOR_POSITIONS.cardboard_box;
+
+            if (cmd === 'sleep') {
+                actor.aiState = Math.random() < 0.5 ? 'back' : 'lie';
+                actor.stateTimer = 15;
+                playMeowSound(0.9);
+                showFloatingNotification(`😴 ${actor.data.name} đã nằm lăn ra ngủ phơi bụng rừ rừ!`, '#6366f1', '💤');
+            } else if (cmd === 'wheel') {
+                actor.aiState = 'running_wheel';
+                actor.stateTimer = 10;
+                playMeowSound(1.1);
+                showFloatingNotification(`🏃 ${actor.data.name} đang chạy bánh xe tập thể dục tít mù!`, '#06b6d4', '✨');
+            } else if (cmd === 'tree') {
+                actor.aiState = 'climbing';
+                actor.climbStep = 1;
+                actor.climbTimer = 1.5;
+                playMeowSound(1.2);
+                showFloatingNotification(`🌳 ${actor.data.name} bắt đầu trèo lên tháp mèo nhiều tầng!`, '#8b5cf6', '🐾');
+            } else if (cmd === 'box') {
+                actor.aiState = 'loaf';
+                actor.mesh.position.set(boxPos.x, FLOOR_Y + 0.12, boxPos.z);
+                actor.stateTimer = 12;
+                playMeowSound(1.15);
+                showFloatingNotification(`📦 ${actor.data.name} đã chui tọt vào hộp carton ấm áp!`, '#f59e0b', '🐱');
+            } else if (cmd === 'flip') {
+                actor.bodyPivot.position.y = 0.7;
+                actor.bodyPivot.rotation.x = Math.PI * 2;
+                playLevelUpSound();
+                showFloatingNotification(`🤸 ${actor.data.name} làm xiếc nhào lộn một vòng cực ngầu!`, '#ec4899', '🎉');
+            } else if (cmd === 'come') {
+                actor.targetPos.set(0, FLOOR_Y + 0.03, 0.8);
+                actor.aiState = 'wander';
+                playMeowSound(1.3);
+                showFloatingNotification(`🐾 ${actor.data.name} đang chạy lại quấn chân bạn nè!`, '#10b981', '💕');
+            }
+        }
+
+        /********************************************************************
+         * 10. DRAG & DROP CATS ANYWHERE IN ROOM
+         ********************************************************************/
+        let pointerDownStartPos = { x: 0, y: 0 };
+
+        function onPointerDown(e) {
+            if (e.target.closest('button') || e.target.closest('.cozy-card') || e.target.closest('select')) return;
+            pointerDownStartPos.x = e.clientX;
+            pointerDownStartPos.y = e.clientY;
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            // Decor edit mode
+            if (isDecorEditMode) {
+                const hits = raycaster.intersectObjects(roomGroup.children, true);
+                for (let hit of hits) {
+                    let obj = hit.object;
+                    while (obj.parent && obj.parent !== roomGroup) obj = obj.parent;
+                    if (obj.userData && obj.userData.decorId) {
+                        selectDecorForEdit(obj.userData.decorId);
+                        isDraggingDecor = true;
+                        return;
+                    }
+                }
+                return;
+            }
+
+            // Normal mode: check cat selection or drag initiation
+            const intersects = raycaster.intersectObjects(roomGroup.children, true);
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while (obj.parent && obj.parent !== roomGroup) obj = obj.parent;
+
+                if (obj.userData && obj.userData.catId) {
+                    selectedCatId = obj.userData.catId;
+                    const actor = catActors.find(a => a.id === selectedCatId);
+                    if (actor) {
+                        draggedCatActor = actor;
+                        isDraggingCat = true;
+                    }
+                    updateInspectorPanel();
+                    playMeowSound(1.2);
+                    return;
+                }
+
+                if (obj.userData && obj.userData.decorId === 'food_station') {
+                    openFeedingModal(); return;
+                }
+                if (obj.userData && obj.userData.decorId === 'litter_box') {
+                    openLitterModal(); return;
+                }
+            }
+        }
+
+        function onPointerMove(e) {
+            // Dragging cat across floor
+            if (isDraggingCat && draggedCatActor) {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const pt = new THREE.Vector3();
+                raycaster.ray.intersectPlane(dragPlane, pt);
+                if (pt) {
+                    draggedCatActor.mesh.position.x = Math.max(-4.4, Math.min(4.4, pt.x));
+                    draggedCatActor.mesh.position.z = Math.max(-2.5, Math.min(2.5, pt.z));
+                }
+                return;
+            }
+
+            // Dragging decor in edit mode
+            if (isDecorEditMode && isDraggingDecor && selectedDecorId) {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const pt = new THREE.Vector3();
+                raycaster.ray.intersectPlane(dragPlane, pt);
+                if (pt) {
+                    nudgeSelectedDecor(pt.x - state.decorPositions[selectedDecorId].x, pt.z - state.decorPositions[selectedDecorId].z);
+                }
+                return;
+            }
+
+            // Laser pointer tracking
+            if (laserActive) {
+                const dot = document.getElementById('laser-dot');
+                dot.style.left = e.clientX + 'px';
+                dot.style.top = e.clientY + 'px';
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const pt = new THREE.Vector3();
+                raycaster.ray.intersectPlane(dragPlane, pt);
+                if (pt) laserTarget3D.copy(pt);
+            }
+        }
+
+        function onPointerUp() {
+            if (isDraggingCat && draggedCatActor) {
+                const pos = draggedCatActor.mesh.position;
+                pos.y = FLOOR_Y + 0.03;
+                isDraggingCat = false;
+
+                // Check landing near interactive toys
+                const treePos = state.decorPositions['cat_tree'] || DEFAULT_DECOR_POSITIONS.cat_tree;
+                const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
+
+                if (Math.hypot(pos.x - treePos.x, pos.z - treePos.z) < 1.2) {
+                    commandCatEmote('tree');
+                } else if (Math.hypot(pos.x - wheelPos.x, pos.z - wheelPos.z) < 1.1) {
+                    commandCatEmote('wheel');
+                } else {
+                    playMeowSound(1.0);
+                    showFloatingNotification(`Đã đặt ${draggedCatActor.data.name} xuống vị trí mới!`, '#10b981', '🐾');
+                }
+                draggedCatActor = null;
+            }
+            isDraggingDecor = false;
+        }
+
+        function toggleLaserPointer() {
+            laserActive = !laserActive;
+            document.getElementById('laser-dot').style.display = laserActive ? 'block' : 'none';
+            document.getElementById('laser-action-btn').classList.toggle('ring-4', laserActive);
+        }
+
+        /********************************************************************
+         * 11. FEEDING, LITTER CLEANING & ANTI-SPAM CARE ACTIONS
+         ********************************************************************/
+        function openFeedingModal() {
+            document.getElementById('feeding-modal').classList.remove('hidden');
+            document.getElementById('feed-stock-kibble').textContent = state.foodStock;
+            document.getElementById('bowl-status-txt').textContent = `Thức ăn: ${Math.round(state.foodBowlPercent)}% • Nước sạch: 100%`;
+        }
+
+        function updateFoodBowlVisual() {
+            if (foodBowlKibbleMesh) {
+                foodBowlKibbleMesh.visible = state.foodBowlPercent > 0;
+                foodBowlKibbleMesh.scale.set(1.0, (state.foodBowlPercent / 100) * 1.0, 1.0);
+            }
+            const bowlTxt = document.getElementById('bowl-status-txt');
+            if (bowlTxt) {
+                bowlTxt.textContent = `Thức ăn: ${Math.round(state.foodBowlPercent)}% • Nước sạch: 100%`;
+            }
+        }
+
+        function feedFoodToBowl(foodType) {
+            // STRICT FEEDING LIMIT: Cats ONLY eat if hunger < 75%
+            const targetCat = state.cats.find(c => c.id === selectedCatId) || state.cats[0];
+            if (targetCat && targetCat.hunger >= 75) {
+                alert(`😺 ${targetCat.name} đang no bụng (${Math.round(targetCat.hunger)}%) chưa đói đâu sen ơi!\n\nQuy định: Mèo chỉ ăn khi đói dưới 75% để tránh béo phì nhé 💕.`);
+                return;
+            }
+
+            if (foodType === 'kibble') {
+                if (state.foodStock <= 0) { alert('Hết thức ăn hạt rồi! Hãy mua thêm tại Cửa hàng nhé.'); return; }
+                state.foodStock--;
+            } else if (foodType === 'pate') {
+                if (state.coins < 25) { alert('Không đủ xu!'); return; }
+                state.coins -= 25;
+            } else if (foodType === 'beef') {
+                if (state.coins < 35) { alert('Không đủ xu!'); return; }
+                state.coins -= 35;
+            } else if (foodType === 'churu') {
+                if (state.coins < 20) { alert('Không đủ xu!'); return; }
+                state.coins -= 20;
+            }
+
+            closeModal('feeding-modal');
+            state.foodBowlPercent = 100;
+            state.hunger = Math.min(100, state.hunger + 30);
+            state.stats.fedToday++;
+            playCrunchSound();
+            updateFoodBowlVisual();
+
+            showFloatingNotification(`🥫 ${currentUser} vừa đổ thức ăn thơm phức vào khay! Mèo đang chạy lại măm măm...`, '#10b981', '🥣');
+
+            catActors.forEach(actor => {
+                actor.aiState = 'eating';
+                actor.stateTimer = 9.0;
+                const cData = state.cats.find(c => c.id === actor.id);
+                if (cData) {
+                    cData.hunger = Math.min(100, cData.hunger + 35);
+                    cData.love = Math.min(100, (cData.love || 85) + 5);
+                }
+            });
+
+            updateUI();
+            pushStateToCloud();
+        }
+
+        function openLitterModal() {
+            document.getElementById('litter-modal').classList.remove('hidden');
+            document.getElementById('litter-clean-txt').textContent = `Cát Sạch: ${Math.round(state.litterCleanliness)}%`;
+            document.getElementById('litter-clean-bar').style.width = state.litterCleanliness + '%';
+        }
+
+        function executeCleanLitter() {
+            closeModal('litter-modal');
+            state.litterCleanliness = 100;
+            state.cleanliness = 100;
+            state.stats.cleanedToday++;
+            playSandSound();
+
+            if (litterBoxDirtGroup) litterBoxDirtGroup.visible = false;
+            showFloatingNotification(`✨ ${currentUser} đã xúc sạch cát và rải cát thơm mới 100%!`, '#06b6d4', '🧹');
+            updateUI();
+            pushStateToCloud();
+        }
+
+        function petSelectedCat() {
+            const now = Date.now();
+            if (now - (state.lastPetTime || 0) < 15000) {
+                const waitSec = Math.ceil((15000 - (now - state.lastPetTime)) / 1000);
+                showFloatingNotification(`Mèo đang tận hưởng cái vuốt vừa rồi! Đợi ${waitSec}s nữa nhé`, '#f59e0b', '⏳');
+                return;
+            }
+            state.lastPetTime = now;
+
+            const cat = state.cats.find(c => c.id === selectedCatId) || state.cats[0];
+            if (!cat) return;
+            state.stats.pettedToday++;
+            state.coins += 2; // Tiny reward to prevent coin spam
+            cat.love = Math.min(100, (cat.love || 85) + 4);
+            playMeowSound(1.25);
+            showFloatingNotification(`👋 ${currentUser} vừa vuốt ve ${cat.name}! Bé rừ rừ thích thú (+2🪙)`, '#ec4899', '💖');
+            updateUI();
+            pushStateToCloud();
+        }
+
+        function actionBrush() {
+            const now = Date.now();
+            if (now - (state.lastBrushTime || 0) < 60000) {
+                const waitSec = Math.ceil((60000 - (now - state.lastBrushTime)) / 1000);
+                showFloatingNotification(`Lông bé đang mượt tinh tươm rồi! Đợi ${waitSec}s sau hãy chải tiếp nhé`, '#f59e0b', '⏳');
+                return;
+            }
+            state.lastBrushTime = now;
+
+            const targetCat = state.cats.find(c => c.id === selectedCatId) || state.cats[0];
+            if (!targetCat) return;
+
+            playPurrSound();
+            state.happiness = Math.min(100, state.happiness + 15);
+            state.stats.brushedToday++;
+            state.coins += 10;
+
+            const actor = catActors.find(a => a.id === targetCat.id);
+            if (actor) { actor.aiState = 'lie'; actor.stateTimer = 5; }
+
+            showFloatingNotification(`🪮 ${currentUser} đã chải lông mượt mà cho ${targetCat.name}! (+10🪙)`, '#ec4899', '💖');
+            updateUI();
+            pushStateToCloud();
+        }
+
+        /********************************************************************
+         * 12. NEIGHBOR CAT GIFTING (IF > 3 CATS)
+         ********************************************************************/
+        function giftCatToNeighbor(catId) {
+            if (state.cats.length <= 3) {
+                alert('Chỉ có thể tặng bớt mèo cho hàng xóm khi bạn đang nuôi trên 3 bé mèo nhé!');
+                return;
+            }
+            const cat = state.cats.find(c => c.id === catId);
+            if (!cat) return;
+
+            if (confirm(`Bạn có chắc muốn gửi tặng bé mèo "${cat.name}" cho người bạn hàng xóm yêu mèo chăm sóc hộ không?\n\nHàng xóm sẽ gửi lại bạn 250🪙 và thư cảm ơn chân thành!`)) {
+                state.cats = state.cats.filter(c => c.id !== catId);
+                state.coins += 250;
+                playCoinSound();
+                rebuildRoomDecorAndCats();
+                renderCatsRoster();
+                updateUI();
+                pushStateToCloud();
+                alert(`💌 Người hàng xóm tốt bụng đã nhận nuôi bé "${cat.name}" trong niềm hân hoan và gửi tặng bạn 250 xu!`);
+            }
+        }
+
+        /********************************************************************
+         * 13. ROOM WALL & FLOOR STYLES
+         ********************************************************************/
+        function switchDecorTab(tab) {
+            document.getElementById('dec-tab-items').className = `cozy-btn px-3 py-1 font-black ${tab === 'items' ? 'bg-amber-200' : 'bg-slate-100'}`;
+            document.getElementById('dec-tab-styles').className = `cozy-btn px-3 py-1 font-black ${tab === 'styles' ? 'bg-amber-200' : 'bg-slate-100'}`;
+            document.getElementById('decor-items-tab').classList.toggle('hidden', tab !== 'items');
+            document.getElementById('decor-styles-tab').classList.toggle('hidden', tab !== 'styles');
+        }
+
+        function setRoomWallStyle(style) {
+            state.wallStyle = style;
+            const colors = {
+                stripes: '#fff4e2',
+                cream: '#fef3c7',
+                mint: '#ccfbf1',
+                wood: '#fde68a'
+            };
+            const col = colors[style] || '#fff4e2';
+            wallMeshesRef.forEach(m => {
+                m.material.color.set(col);
+                m.material.needsUpdate = true;
+            });
+            showFloatingNotification(`🎨 Đã đổi kiểu sơn tường: ${style}!`, '#8b5cf6', '✨');
+            saveGameState();
+        }
+
+        function setRoomFloorStyle(style) {
+            state.floorStyle = style;
+            if (!floorMeshRef) return;
+            const tints = {
+                oak: 0xffffff,
+                white_wood: 0xf1f5f9,
+                walnut: 0xb45309
+            };
+            floorMeshRef.material.color.setHex(tints[style] || 0xffffff);
+            floorMeshRef.material.needsUpdate = true;
+            showFloatingNotification(`🪵 Đã đổi màu sàn gỗ: ${style}!`, '#8b5cf6', '✨');
+            saveGameState();
+        }
+
+        /********************************************************************
+         * 14. DECOR EDIT MODE & SELECTION
+         ********************************************************************/
+        function enterDecorEditMode() {
+            closeModal('decor-modal');
+            isDecorEditMode = true;
+            document.getElementById('decor-edit-banner').classList.remove('hidden');
+            document.getElementById('decor-edit-widget').classList.remove('hidden');
+            populateDecorSelectDropdown();
+            updateDecorSelectionRing();
+            showFloatingNotification('🛠️ Chế độ Sắp Đặt: Kéo chuột trên sàn để di chuyển đồ!', '#8b5cf6', '🪑');
+        }
+
+        function exitDecorEditMode() {
+            isDecorEditMode = false;
+            document.getElementById('decor-edit-banner').classList.add('hidden');
+            document.getElementById('decor-edit-widget').classList.add('hidden');
+            if (decorSelectionRing) decorSelectionRing.visible = false;
+            pushStateToCloud();
+            showFloatingNotification('💾 Đã lưu cách sắp đặt phòng!', '#10b981', '✨');
+        }
+
+        function populateDecorSelectDropdown() {
+            const sel = document.getElementById('decor-picker-select');
+            sel.innerHTML = '';
+            DECOR_CATALOG.forEach(dec => {
+                const opt = document.createElement('option');
+                opt.value = dec.id;
+                opt.textContent = dec.name;
+                if (dec.id === selectedDecorId) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            updateDecorToggleBtn();
+        }
+
+        function onDecorSelectChanged() {
+            selectedDecorId = document.getElementById('decor-picker-select').value;
+            updateDecorSelectionRing();
+            updateDecorToggleBtn();
+        }
+
+        function selectDecorForEdit(decorId) {
+            selectedDecorId = decorId;
+            const sel = document.getElementById('decor-picker-select');
+            if (sel) sel.value = decorId;
+            updateDecorSelectionRing();
+            updateDecorToggleBtn();
+        }
+
+        function updateDecorSelectionRing() {
+            if (!decorSelectionRing) return;
+            if (!isDecorEditMode) { decorSelectionRing.visible = false; return; }
+            const mesh = decorMeshes[selectedDecorId];
+            if (mesh && state.activeDecor.includes(selectedDecorId)) {
+                decorSelectionRing.visible = true;
+                decorSelectionRing.position.set(mesh.position.x, FLOOR_Y + 0.015, mesh.position.z);
+            } else {
+                decorSelectionRing.visible = false;
+            }
+        }
+
+        function updateDecorToggleBtn() {
+            const btn = document.getElementById('decor-toggle-btn');
+            if (!btn) return;
+            const active = state.activeDecor.includes(selectedDecorId);
+            btn.textContent = active ? '📦 Cất' : '🪑 Bày';
+            btn.className = `cozy-btn px-2.5 py-1 text-xs font-black ${active ? 'bg-rose-100 hover:bg-rose-200' : 'bg-emerald-100 hover:bg-emerald-200'}`;
+        }
+
+        function nudgeSelectedDecor(dx, dz) {
+            if (!selectedDecorId) return;
+            if (!state.decorPositions[selectedDecorId]) {
+                state.decorPositions[selectedDecorId] = Object.assign({}, DEFAULT_DECOR_POSITIONS[selectedDecorId] || { x: 0, z: 0, rot: 0 });
+            }
+            const p = state.decorPositions[selectedDecorId];
+            p.x = Math.max(-4.4, Math.min(4.4, +(p.x + dx).toFixed(2)));
+            p.z = Math.max(-2.7, Math.min(2.7, +(p.z + dz).toFixed(2)));
+
+            const mesh = decorMeshes[selectedDecorId];
+            if (mesh) mesh.position.set(p.x, 0, p.z);
+            updateDecorSelectionRing();
+            saveGameState();
+        }
+
+        function rotateSelectedDecor() {
+            if (!selectedDecorId) return;
+            if (!state.decorPositions[selectedDecorId]) {
+                state.decorPositions[selectedDecorId] = Object.assign({}, DEFAULT_DECOR_POSITIONS[selectedDecorId] || { x: 0, z: 0, rot: 0 });
+            }
+            const p = state.decorPositions[selectedDecorId];
+            p.rot = +( (p.rot || 0) + Math.PI / 4 ).toFixed(3);
+            const mesh = decorMeshes[selectedDecorId];
+            if (mesh) mesh.rotation.y = p.rot;
+            saveGameState();
+        }
+
+        function toggleSelectedDecorActive() {
+            if (!selectedDecorId) return;
+            if (state.activeDecor.includes(selectedDecorId)) {
+                state.activeDecor = state.activeDecor.filter(id => id !== selectedDecorId);
+            } else {
+                state.activeDecor.push(selectedDecorId);
+            }
+            rebuildRoomDecorAndCats();
+            updateDecorToggleBtn();
+            saveGameState();
+        }
+
+        /********************************************************************
+         * 15. UI UPDATES, SHOP & INSPECTOR
+         ********************************************************************/
+        function updateUI() {
+            document.getElementById('coin-count').textContent = state.coins.toLocaleString();
+            document.getElementById('room-name-display').textContent = state.roomName;
+            document.getElementById('room-sub-info').textContent = `${state.cats.length} bé mèo cưng`;
+            document.getElementById('stat-hunger-bar').style.width = state.hunger + '%';
+            document.getElementById('stat-hunger-val').textContent = state.hunger + '%';
+            document.getElementById('stat-happy-bar').style.width = state.happiness + '%';
+            document.getElementById('stat-happy-val').textContent = state.happiness + '%';
+            document.getElementById('stat-clean-bar').style.width = state.cleanliness + '%';
+            document.getElementById('stat-clean-val').textContent = state.cleanliness + '%';
+            document.getElementById('badge-food').textContent = state.foodStock;
+
+            updateInspectorPanel();
+            updateMainQuestUI();
+        }
+
+        function updateInspectorPanel() {
+            const panel = document.getElementById('cat-inspector');
+            const cat = state.cats.find(c => c.id === selectedCatId);
+            if (!cat) { panel.classList.add('hidden'); return; }
+            panel.classList.remove('hidden');
+
+            const breed = CAT_BREEDS.find(b => b.id === cat.breedId) || CAT_BREEDS[0];
+            const lvl = CAT_GROWTH_LEVELS[cat.level || 1] || CAT_GROWTH_LEVELS[1];
+
+            document.getElementById('insp-name').textContent = cat.name;
+            document.getElementById('insp-breed').textContent = breed.name;
+            document.getElementById('insp-level-badge').textContent = lvl.badge;
+            document.getElementById('insp-growth-val').textContent = `Lớn: ${Math.round(cat.growthExp || 0)}%`;
+            document.getElementById('insp-growth-bar').style.width = (cat.growthExp || 0) + '%';
+            document.getElementById('insp-hunger').textContent = Math.round(cat.hunger || 70) + '%';
+            document.getElementById('insp-love').textContent = Math.round(cat.love || 85) + '% 💕';
+            document.getElementById('insp-hat').textContent = (CAT_ACCESSORIES.find(a => a.id === cat.accessory) || { name: 'Chuông Vàng' }).name;
+
+            const nextExp = 100 - Math.round(cat.growthExp || 0);
+            const isFull = (cat.hunger || 0) >= 60 && (cat.love || 0) >= 60;
+            document.getElementById('insp-growth-hint').innerHTML = `
+                <span>${cat.level < 4 ? `Còn ${nextExp}% lên Cấp ${cat.level + 1}` : 'Cấp Tối Đa!'}</span>
+                <span class="${isFull ? 'text-emerald-600 font-black' : 'text-amber-600 font-bold'}">${isFull ? '📈 Đang lớn tự nhiên' : '⚠️ Cần cho ăn & vuốt'}</span>`;
+        }
+
+        function closeInspector() {
+            document.getElementById('cat-inspector').classList.add('hidden');
+        }
+
+        function addCatGrowthExp(catData, amount, reason, silent = false) {
+            catData.growthExp = (catData.growthExp || 0) + amount;
+            if (catData.growthExp >= 100) {
+                if (catData.level < 4) {
+                    catData.level++;
+                    catData.growthExp -= 100;
+                    triggerLevelUpCelebration(catData);
+                } else {
+                    catData.growthExp = 100;
+                }
+            }
+
+            catData.scale = getCatScale(catData.level, catData.growthExp);
+            const actor = catActors.find(a => a.id === catData.id);
+            if (actor) {
+                actor.mesh.scale.set(catData.scale, catData.scale, catData.scale);
+            }
+            if (!silent) updateInspectorPanel();
+            saveGameState();
+        }
+
+        function triggerLevelUpCelebration(catData) {
+            playLevelUpSound();
+            fireConfetti();
+
+            const lvlInfo = CAT_GROWTH_LEVELS[catData.level] || CAT_GROWTH_LEVELS[2];
+            document.getElementById('levelup-cat-name').textContent = catData.name;
+            document.getElementById('levelup-badge-new').textContent = lvlInfo.badge;
+            document.getElementById('levelup-desc').textContent = lvlInfo.desc;
+            document.getElementById('levelup-modal').classList.remove('hidden');
+
+            state.coins += 100;
+            updateUI();
+            pushStateToCloud();
+        }
+
+        function fireConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#f43f5e', '#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'];
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: canvas.width / 2, y: canvas.height * 0.4,
+                    vx: (Math.random() - 0.5) * 14, vy: (Math.random() - 0.7) * 15,
+                    size: 6 + Math.random() * 7, color: colors[Math.floor(Math.random() * colors.length)],
+                    rot: Math.random() * Math.PI, vRot: (Math.random() - 0.5) * 0.2, alpha: 1
+                });
+            }
+
+            let startT = performance.now();
+            function renderConfetti() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.35;
+                    p.rot += p.vRot; p.alpha -= 0.012;
+                    if (p.alpha > 0) {
+                        alive = true;
+                        ctx.save(); ctx.globalAlpha = Math.max(0, p.alpha);
+                        ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+                        ctx.fillStyle = p.color; ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+                        ctx.restore();
+                    }
+                });
+                if (alive && performance.now() - startT < 2500) requestAnimationFrame(renderConfetti);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            requestAnimationFrame(renderConfetti);
+        }
+
+        function cycleSelectedCatAccessory() {
+            const cat = state.cats.find(c => c.id === selectedCatId) || state.cats[0];
+            if (!cat) return;
+            const accs = CAT_ACCESSORIES.map(a => a.id);
+            const curIdx = accs.indexOf(cat.accessory || 'bell');
+            cat.accessory = accs[(curIdx + 1) % accs.length];
+
+            const actor = catActors.find(a => a.id === cat.id);
+            if (actor) buildCatAccessoryMesh(actor.accessoryGroup, cat.accessory);
+            playCoinSound();
+            updateInspectorPanel();
+            pushStateToCloud();
+        }
+
+        function renameSelectedCat() {
+            const cat = state.cats.find(c => c.id === selectedCatId);
+            if (!cat) return;
+            const n = prompt('Đổi tên bé mèo:', cat.name);
+            if (n && n.trim()) {
+                cat.name = n.trim();
+                updateInspectorPanel();
+                pushStateToCloud();
+            }
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            if (id === 'shop-modal') renderShop('cats');
+            if (id === 'breed-modal') renderCatsRoster();
+            if (id === 'decor-modal') renderDecorList();
+            if (id === 'couple-modal') initCoupleSelects();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function switchShopTab(tab) {
+            ['cats', 'decor', 'food'].forEach(t => {
+                document.getElementById(`shop-tab-${t}`).className = `cozy-btn px-3 py-1 text-xs font-extrabold ${t === tab ? 'bg-amber-200' : 'bg-slate-100'}`;
+            });
+            renderShop(tab);
+        }
+
+        function renderShop(tab) {
+            const area = document.getElementById('shop-content-area');
+            area.innerHTML = '';
+            if (tab === 'cats') {
+                CAT_BREEDS.forEach(breed => {
+                    area.innerHTML += `
+                        <div class="cozy-card p-2.5 flex justify-between items-center bg-white">
+                            <div>
+                                <div class="font-black text-xs sm:text-sm">${breed.name}</div>
+                                <div class="text-[10px] font-bold text-slate-500">${breed.desc}</div>
+                                <div class="text-xs font-black text-amber-600 mt-0.5">🪙 ${breed.price}</div>
+                            </div>
+                            <button onclick="buyCat('${breed.id}', ${breed.price})" class="cozy-btn px-3 py-1 bg-emerald-400 text-white font-black text-xs">Nuôi</button>
+                        </div>`;
+                });
+            } else if (tab === 'decor') {
+                DECOR_CATALOG.forEach(dec => {
+                    const owned = state.ownedDecor.includes(dec.id);
+                    area.innerHTML += `
+                        <div class="cozy-card p-2.5 flex justify-between items-center bg-white">
+                            <div>
+                                <div class="font-black text-xs sm:text-sm">${dec.name}</div>
+                                <div class="text-[10px] font-bold text-slate-500">${dec.desc}</div>
+                                <div class="text-xs font-black text-amber-600 mt-0.5">🪙 ${dec.price}</div>
+                            </div>
+                            <button onclick="buyDecor('${dec.id}', ${dec.price})" class="cozy-btn px-3 py-1 ${owned ? 'bg-slate-300' : 'bg-emerald-400 text-white'} font-black text-xs" ${owned ? 'disabled' : ''}>${owned ? 'Đã có' : 'Mua'}</button>
+                        </div>`;
+                });
+            } else if (tab === 'food') {
+                area.innerHTML += `
+                    <div class="cozy-card p-2.5 flex justify-between items-center bg-white">
+                        <div>
+                            <div class="font-black text-xs sm:text-sm">Hũ Hạt Cá Hồi (x5 phần)</div>
+                            <div class="text-[10px] font-bold text-slate-500">Thơm giòn cho mèo ăn măm măm</div>
+                            <div class="text-xs font-black text-amber-600 mt-0.5">🪙 50</div>
+                        </div>
+                        <button onclick="buyFood()" class="cozy-btn px-3 py-1 bg-emerald-400 text-white font-black text-xs">Mua ngay</button>
+                    </div>`;
+            }
+        }
+
+        function buyCat(breedId, price) {
+            if (state.coins < price) { alert('Không đủ xu!'); return; }
+            state.coins -= price;
+            const breed = CAT_BREEDS.find(b => b.id === breedId);
+            const newCat = {
+                id: 'c_' + Date.now(),
+                name: breed.name.split(' ')[0],
+                breedId,
+                hunger: 100,
+                happiness: 100,
+                love: 100,
+                level: 1,
+                growthExp: 0,
+                scale: 0.58,
+                accessory: 'bell'
+            };
+            state.cats.push(newCat);
+            selectedCatId = newCat.id;
+            playCoinSound();
+            rebuildRoomDecorAndCats();
+            updateUI();
+            closeModal('shop-modal');
+            showFloatingNotification(`🎉 Chúc mừng bạn đã nhận nuôi bé ${newCat.name}!`, '#ec4899', '🐱');
+            pushStateToCloud();
+        }
+
+        function buyDecor(decorId, price) {
+            if (state.coins < price) { alert('Không đủ xu!'); return; }
+            state.coins -= price;
+            state.ownedDecor.push(decorId);
+            state.activeDecor.push(decorId);
+            playCoinSound();
+            rebuildRoomDecorAndCats();
+            updateUI();
+            renderShop('decor');
+            showFloatingNotification('🪑 Đã mua đồ mới cho mèo! Vào Bày Trí để xếp chỗ', '#8b5cf6', '✨');
+            pushStateToCloud();
+        }
+
+        function buyFood() {
+            if (state.coins < 50) { alert('Không đủ xu!'); return; }
+            state.coins -= 50;
+            state.foodStock += 5;
+            playCoinSound();
+            updateUI();
+            showFloatingNotification('🥫 Đã mua thêm 5 phần hạt thơm ngon!', '#f59e0b', '🛒');
+            pushStateToCloud();
+        }
+
+        function renderCatsRoster() {
+            const list = document.getElementById('cats-roster-list');
+            list.innerHTML = '';
+            state.cats.forEach(c => {
+                const b = CAT_BREEDS.find(x => x.id === c.breedId) || CAT_BREEDS[0];
+                const lvl = CAT_GROWTH_LEVELS[c.level || 1] || CAT_GROWTH_LEVELS[1];
+                const canGift = state.cats.length > 3;
+
+                list.innerHTML += `
+                    <div class="cozy-card p-2.5 sm:p-3 flex justify-between items-center bg-white gap-2">
+                        <div class="flex-1 pr-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-black text-xs sm:text-sm">${c.name}</span>
+                                <span class="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 text-[10px] font-black">${lvl.badge}</span>
+                            </div>
+                            <div class="text-[10px] font-bold text-slate-500">${b.name}</div>
+                            <div class="stat-bar-track mt-1 w-36 sm:w-44 bg-pink-50">
+                                <div class="stat-bar-fill bg-gradient-to-r from-pink-400 to-amber-400" style="width: ${c.growthExp || 0}%"></div>
+                            </div>
+                            <div class="text-[9px] font-extrabold text-pink-600 mt-0.5">Tiến trình lớn: ${Math.round(c.growthExp || 0)}% (Lớn theo thời gian)</div>
+                        </div>
+                        <div class="flex flex-col gap-1 items-end">
+                            <button onclick="selectCatForInspector('${c.id}')" class="cozy-btn px-2.5 py-1 text-xs font-black bg-amber-100">
+                                Chăm sóc
+                            </button>
+                            ${canGift ? `<button onclick="giftCatToNeighbor('${c.id}')" class="cozy-btn px-2 py-0.5 text-[10px] font-black bg-rose-100 text-rose-800" title="Tặng bớt cho hàng xóm nuôi hộ khi có trên 3 con">🏠 Tặng hàng xóm</button>` : ''}
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function selectCatForInspector(catId) {
+            selectedCatId = catId;
+            closeModal('breed-modal');
+            updateInspectorPanel();
+        }
+
+        function renderDecorList() {
+            const list = document.getElementById('decor-toggle-list');
+            list.innerHTML = '';
+            DECOR_CATALOG.forEach(dec => {
+                const owned = state.ownedDecor.includes(dec.id);
+                if (!owned) return;
+                const active = state.activeDecor.includes(dec.id);
+                list.innerHTML += `
+                    <div class="cozy-card p-2 flex justify-between items-center bg-white text-xs">
+                        <div>
+                            <div class="font-black text-xs">${dec.name}</div>
+                            <div class="text-[10px] font-bold text-slate-500">${dec.desc}</div>
+                        </div>
+                        <button onclick="toggleDecor('${dec.id}')" class="cozy-btn px-2.5 py-1 text-[11px] font-black ${active ? 'bg-emerald-400 text-white' : 'bg-slate-200'}">
+                            ${active ? 'Đang bày' : 'Cất kho'}
+                        </button>
+                    </div>`;
+            });
+        }
+
+        function toggleDecor(decId) {
+            if (state.activeDecor.includes(decId)) {
+                state.activeDecor = state.activeDecor.filter(id => id !== decId);
+            } else {
+                state.activeDecor.push(decId);
+            }
+            rebuildRoomDecorAndCats();
+            renderDecorList();
+            pushStateToCloud();
+        }
+
+        function initCoupleSelects() {
+            const s1 = document.getElementById('couple-cat-1');
+            const s2 = document.getElementById('couple-cat-2');
+            s1.innerHTML = ''; s2.innerHTML = '';
+            const adultCats = state.cats.filter(c => (c.level || 1) >= 3);
+            if (adultCats.length === 0) {
+                s1.innerHTML = '<option disabled>Chưa có mèo Cấp 3 Trưởng Thành</option>';
+                s2.innerHTML = '<option disabled>Hãy chăm sóc mèo lớn lên!</option>';
+                return;
+            }
+            adultCats.forEach(c => {
+                s1.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                s2.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+        }
+
+        function executeBreeding() {
+            const adultCats = state.cats.filter(c => (c.level || 1) >= 3);
+            if (adultCats.length < 2) {
+                alert('Cần ít nhất 2 bé mèo đạt Cấp 3 (Trưởng Thành) để ghép đôi sinh mèo con!');
+                return;
+            }
+            if (state.coins < 100) { alert('Cần 100 xu để ghép đôi!'); return; }
+            state.coins -= 100;
+            const randomBreed = CAT_BREEDS[Math.floor(Math.random() * CAT_BREEDS.length)];
+            const babyCat = {
+                id: 'baby_' + Date.now(),
+                name: 'Boss Con',
+                breedId: randomBreed.id,
+                hunger: 100,
+                happiness: 100,
+                love: 100,
+                level: 1,
+                growthExp: 0,
+                scale: 0.55,
+                accessory: 'bow'
+            };
+            state.cats.push(babyCat);
+            selectedCatId = babyCat.id;
+            playCoinSound();
+            rebuildRoomDecorAndCats();
+            updateUI();
+            closeModal('couple-modal');
+            fireConfetti();
+            alert('🎉 Chúc mừng Lina & Qwan đã chào đón thêm một bé mèo con siêu đáng yêu!');
+            pushStateToCloud();
+        }
+
+        function updateMainQuestUI() {
+            const q = MAIN_QUESTS[state.mainQuestIdx];
+            if (!q) {
+                document.getElementById('main-quest-title').textContent = 'Hoàn thành tất cả nhiệm vụ!';
+                document.getElementById('main-quest-desc').textContent = 'Bạn là người chăm sóc mèo tuyệt vời!';
+                document.getElementById('claim-main-quest-btn').classList.add('hidden');
+                return;
+            }
+            const prog = q.check(state);
+            document.getElementById('main-quest-step').textContent = `NHIỆM VỤ ${state.mainQuestIdx + 1}/${MAIN_QUESTS.length}`;
+            document.getElementById('main-quest-title').textContent = q.title;
+            document.getElementById('main-quest-desc').textContent = q.desc;
+            document.getElementById('main-quest-prog').textContent = `${Math.min(prog.cur, prog.max)}/${prog.max}`;
+            document.getElementById('main-quest-reward').textContent = `🪙${q.reward}`;
+            const pct = Math.min(100, (prog.cur / prog.max) * 100);
+            document.getElementById('main-quest-bar').style.width = pct + '%';
+
+            const claimBtn = document.getElementById('claim-main-quest-btn');
+            if (prog.cur >= prog.max) claimBtn.classList.remove('hidden');
+            else claimBtn.classList.add('hidden');
+        }
+
+        function claimMainQuest() {
+            const q = MAIN_QUESTS[state.mainQuestIdx];
+            if (!q) return;
+            state.coins += q.reward;
+            state.mainQuestIdx++;
+            playCoinSound();
+            fireConfetti();
+            updateUI();
+            pushStateToCloud();
+            showFloatingNotification('🎁 Đã nhận thưởng nhiệm vụ thành công!', '#10b981', '🪙');
+        }
+
+        function renameRoomPrompt() {
+            const n = prompt('Nhập tên mới cho phòng mèo:', state.roomName);
+            if (n && n.trim()) {
+                state.roomName = n.trim();
+                updateUI();
+                pushStateToCloud();
+            }
+        }
+
+        function onWindowResize() {
+            fitCamera();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = function () {
+            loadGameState();
+            checkUserLogin();
+            applySidePanelStates();
+            initThreeScene();
+            updateRealTimeAndWeather();
+            setInterval(updateRealTimeAndWeather, 15000);
+            setInterval(() => syncWithCloud(false), 20000); // Background sync between Lina & Qwan
+            updateUI();
+            requestAnimationFrame(animateLoop);
+        };
+    </script>
+</body>
+</html>
