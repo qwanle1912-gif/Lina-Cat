@@ -1080,7 +1080,13 @@
             return { pitch: basePitch, timbre: primaryTimbre, name: actor.data.name };
         }
 
+        let lastVoicePlayTime = 0;
         function playCatVoice(actor, situation = 'greet') {
+            const nowTime = Date.now();
+            // Prevent audio glitch/blowout: throttle sounds so they can never overlap at crazy 60fps speeds
+            if (nowTime - lastVoicePlayTime < 320) return;
+            lastVoicePlayTime = nowTime;
+
             if (!actor) {
                 playRealisticMeow('trill', 1.0);
                 return;
@@ -1148,7 +1154,11 @@
             }
         }
 
+        let lastSandSoundTime = 0;
         function playSandSound() {
+            const nowTime = Date.now();
+            if (nowTime - lastSandSoundTime < 400) return;
+            lastSandSoundTime = nowTime;
             initAudio(); if (!audioCtx || (state.settings && state.settings.muted)) return;
             const now = audioCtx.currentTime;
             const bufferSize = audioCtx.sampleRate * 0.3;
@@ -1426,8 +1436,8 @@
             }
         }
 
-        // DUAL SYNC SYSTEM: (1) INSTANT LOCAL BROADCASTCHANNEL + (2) CROSS-DEVICE NTFY.SH CLOUD
-        const NTFY_SYNC_TOPIC = 'https://ntfy.sh/meowlator_qwan_lina_hub_v1';
+        // CLOUD SERVER SYNC SYSTEM (REST API + INSTANT LOCAL BROADCASTCHANNEL)
+        const CLOUD_SYNC_ENDPOINT = 'https://api.restful-api.dev/objects/ff808181a09d98f701a160811efa47e6';
         let localSyncChannel = null;
         try {
             if (window.BroadcastChannel) {
@@ -1438,67 +1448,9 @@
             }
         } catch(e) {}
 
-        function handleIncomingSyncMessage(data, source = 'cloud') {
-            if (!data) return;
-            const now = Date.now();
+        let isCloudPushing = false;
+        let pendingCloudPush = false;
 
-            // 1. HEARTBEAT / PRESENCE PING
-            if (data.type === 'heartbeat' && data.user) {
-                state.presence = state.presence || {};
-                state.presence[data.user] = data.time || now;
-                updateLivePresenceUI();
-                return;
-            }
-
-            // 2. STATE SYNCHRONIZATION (COINS, CATS, FOOD, DECOR)
-            if ((data.type === 'state_sync' || data.state) && data.user !== currentUser) {
-                const incomingState = data.state || data;
-                if (incomingState && incomingState.lastSaved) {
-                    if (!state.lastSaved || incomingState.lastSaved >= state.lastSaved) {
-                        state = Object.assign(state, incomingState);
-                        state.presence = state.presence || {};
-                        state.presence[data.user] = data.time || now;
-                        saveGameState();
-                        rebuildRoomDecorAndCats();
-                        updateUI();
-                        updateLivePresenceUI();
-
-                        const otherPerson = currentUser === 'Qwan' ? 'Lina (Chồng 🤴)' : 'Qwan (Vợ 👸)';
-                        showFloatingNotification(`✨ ${data.user || otherPerson} vừa cập nhật phòng mèo! 💕`, '#10b981', '🔄');
-                    }
-                }
-            }
-        }
-
-        // BROADCAST PRESENCE HEARTBEAT (EVERY 6-8s)
-        function broadcastPresenceHeartbeat() {
-            const now = Date.now();
-            state.presence = state.presence || {};
-            state.presence[currentUser] = now;
-            updateLivePresenceUI();
-
-            const pingMsg = {
-                type: 'heartbeat',
-                user: currentUser,
-                time: now
-            };
-
-            // 1. Send via local BroadcastChannel (instant 0ms to other tab/window)
-            if (localSyncChannel) {
-                try { localSyncChannel.postMessage(pingMsg); } catch(e) {}
-            }
-
-            // 2. Send via ntfy.sh cloud for cross-device (Phone <-> PC)
-            try {
-                fetch(NTFY_SYNC_TOPIC, {
-                    method: 'POST',
-                    headers: { 'Title': 'MeowLator Ping' },
-                    body: JSON.stringify(pingMsg)
-                }).catch(() => {});
-            } catch(e) {}
-        }
-
-        // PUSH FULL GAME STATE WHEN AN ACTION OCCURS
         async function pushStateToCloud() {
             state.lastSaved = Date.now();
             state.lastUser = currentUser === 'Qwan' ? 'Qwan (Vợ 👸)' : 'Lina (Chồng 🤴)';
@@ -1513,58 +1465,138 @@
                 state: state
             };
 
-            // 1. Instant local tab sync
+            // 1. Instant local BroadcastChannel (0ms to same-browser profile tabs)
             if (localSyncChannel) {
                 try { localSyncChannel.postMessage(syncMsg); } catch(e) {}
             }
 
-            // 2. Cloud sync via ntfy.sh
+            // 2. Push to Cloud REST API (Cross-profile & Cross-device Phone <-> PC)
+            if (isCloudPushing) {
+                pendingCloudPush = true;
+                return;
+            }
+            isCloudPushing = true;
             try {
-                await fetch(NTFY_SYNC_TOPIC, {
-                    method: 'POST',
-                    headers: { 'Title': 'MeowLator State Sync', 'Tags': 'cat,heart' },
-                    body: JSON.stringify(syncMsg)
+                const payload = JSON.stringify({
+                    name: 'MeowLator_Save_QwanLina',
+                    data: state
                 });
-            } catch (e) {}
+                await fetch(CLOUD_SYNC_ENDPOINT, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload
+                });
+            } catch (e) {
+                console.warn('Cloud sync push warning:', e);
+            } finally {
+                isCloudPushing = false;
+                if (pendingCloudPush) {
+                    pendingCloudPush = false;
+                    setTimeout(pushStateToCloud, 1000);
+                }
+            }
         }
 
-        // CLOUD POLLING & EVENT SOURCE LISTENER
         async function syncWithCloud(isInitial = false) {
             try {
-                const getRes = await fetch(`${NTFY_SYNC_TOPIC}/json?poll=1&since=all`, { cache: 'no-store' });
-                if (getRes.ok) {
-                    const text = await getRes.text();
-                    const lines = text.trim().split('\n');
-                    for (let i = lines.length - 1; i >= 0; i--) {
-                        try {
-                            const entry = JSON.parse(lines[i]);
-                            if (entry.event === 'message' && entry.message) {
-                                const payload = JSON.parse(entry.message);
-                                handleIncomingSyncMessage(payload, 'poll');
-                                break;
-                            }
-                        } catch(e) {}
+                const res = await fetch(CLOUD_SYNC_ENDPOINT, { cache: 'no-store' });
+                if (res.ok) {
+                    const json = await res.json();
+                    const remoteState = json && json.data ? json.data : null;
+                    if (remoteState) {
+                        handleIncomingRemoteState(remoteState, isInitial);
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                // Offline fallback - use localStorage
+            }
         }
 
-        function startLiveCloudListener() {
-            try {
-                if (window.EventSource) {
-                    const eventSource = new EventSource(`${NTFY_SYNC_TOPIC}/sse`);
-                    eventSource.onmessage = function(event) {
-                        try {
-                            const data = JSON.parse(event.data);
-                            if (data.event === 'message' && data.message) {
-                                const payload = JSON.parse(data.message);
-                                handleIncomingSyncMessage(payload, 'sse');
-                            }
-                        } catch(e) {}
-                    };
+        function handleIncomingRemoteState(remoteState, isInitial = false) {
+            if (!remoteState) return;
+            const now = Date.now();
+
+            // 1. Sync presence timestamps
+            if (remoteState.presence) {
+                state.presence = state.presence || {};
+                for (const u in remoteState.presence) {
+                    state.presence[u] = Math.max(state.presence[u] || 0, remoteState.presence[u] || 0);
                 }
-            } catch(e) {}
+                updateLivePresenceUI();
+            }
+
+            // 2. Check if remote state is newer or initial load
+            const shouldAdopt = isInitial 
+                ? (remoteState.cats && remoteState.cats.length > 0 && (remoteState.coins !== undefined))
+                : (remoteState.lastSaved && (!state.lastSaved || remoteState.lastSaved > state.lastSaved));
+
+            if (shouldAdopt) {
+                // Merge remote state
+                state.coins = remoteState.coins !== undefined ? remoteState.coins : state.coins;
+                state.food = remoteState.food !== undefined ? remoteState.food : state.food;
+                state.cleanSand = remoteState.cleanSand !== undefined ? remoteState.cleanSand : state.cleanSand;
+                if (Array.isArray(remoteState.cats) && remoteState.cats.length > 0) {
+                    state.cats = remoteState.cats;
+                }
+                if (Array.isArray(remoteState.ownedDecor)) state.ownedDecor = remoteState.ownedDecor;
+                if (Array.isArray(remoteState.activeDecor)) state.activeDecor = remoteState.activeDecor;
+                if (remoteState.decorPositions) state.decorPositions = remoteState.decorPositions;
+                if (remoteState.stats) state.stats = Object.assign(state.stats || {}, remoteState.stats);
+                state.lastSaved = remoteState.lastSaved || now;
+                state.lastUser = remoteState.lastUser || '';
+
+                saveGameState();
+                rebuildRoomDecorAndCats();
+                updateUI();
+                updateLivePresenceUI();
+
+                if (!isInitial && (remoteState.lastUser && !remoteState.lastUser.includes(currentUser))) {
+                    showFloatingNotification(`✨ ${remoteState.lastUser} vừa cập nhật phòng mèo! 💕`, '#10b981', '🔄');
+                }
+            }
         }
+
+        function handleIncomingSyncMessage(data, source = 'local') {
+            if (!data) return;
+            if (data.type === 'state_sync' && data.state && data.user !== currentUser) {
+                handleIncomingRemoteState(data.state, false);
+            } else if (data.type === 'heartbeat' && data.user) {
+                state.presence = state.presence || {};
+                state.presence[data.user] = data.time || Date.now();
+                updateLivePresenceUI();
+            }
+        }
+
+        function broadcastPresenceHeartbeat() {
+            const now = Date.now();
+            state.presence = state.presence || {};
+            state.presence[currentUser] = now;
+            updateLivePresenceUI();
+
+            const pingMsg = {
+                type: 'heartbeat',
+                user: currentUser,
+                time: now
+            };
+
+            // Local broadcast
+            if (localSyncChannel) {
+                try { localSyncChannel.postMessage(pingMsg); } catch(e) {}
+            }
+
+            // Also push presence update to cloud
+            pushStateToCloud();
+        }
+
+        // Start cloud polling every 3.5 seconds
+        setInterval(() => {
+            syncWithCloud(false);
+        }, 3500);
+
+        // Heartbeat every 20 seconds
+        setInterval(() => {
+            broadcastPresenceHeartbeat();
+        }, 20000);
 
         /********************************************************************
          * 4. GAME STATE & BALANCED REAL-TIME GROWTH (10 HOURS TO LVL 3)
@@ -2719,6 +2751,9 @@
             const currentScale = getCatScale(catData.level || 1, catData.growthExp || 0);
             root.scale.set(currentScale, currentScale, currentScale);
 
+                        root.traverse(child => {
+                child.userData.catId = catData.id;
+            });
             return {
                 id: catData.id, data: catData, breed, mesh: root, bodyPivot, headGroup, accessoryGroup, eyes, ears, legs, tailSegments,
                 aiState: 'wander', stateTimer: 2 + Math.random() * 4, moving: false, seed: Math.random() * 10,
@@ -2765,6 +2800,8 @@
 
         // CAT JUMP INTERPOLATION HELPER (PARABOLIC ARC WITH PAW TUCK & EXTENSION)
         function triggerCatJump(actor, targetVec, arcHeight = 0.5, duration = 0.65, nextState = 'sit', nextTimer = 3) {
+            // NEVER trigger a new jump if already in the middle of a jump!
+            if (actor.jumpData) return;
             actor.jumpData = {
                 startPos: actor.mesh.position.clone(),
                 endPos: targetVec.clone(),
@@ -2899,6 +2936,8 @@
 
             catActors.forEach(actor => {
                 if (isDraggingCat && draggedCatActor === actor) return;
+                // If cat is actively jumping, do not run other AI logic to prevent mid-air freeze and sound glitch
+                if (actor.jumpData) return;
 
                 // 1. LASER POINTER CHASE (SMOOTH & RESPONSIVE FOLLOW)
                 if (laserActive) {
@@ -2969,8 +3008,13 @@
                 if (!actor.pottyTimer) actor.pottyTimer = 140 + Math.random() * 100;
                 actor.pottyTimer -= effDt;
 
-                if (actor.pottyTimer <= 0 && state.activeDecor.includes('litter_box') && actor.aiState !== 'using_litter' && actor.aiState !== 'going_to_litter' && actor.aiState !== 'running_wheel' && actor.aiState !== 'climbing') {
+                // When timer triggers, immediately set state and reset timer so it NEVER loops in a 60fps cycle!
+                if (actor.pottyTimer <= 0 && state.activeDecor.includes('litter_box') && 
+                    actor.aiState !== 'using_litter' && actor.aiState !== 'going_to_litter' && 
+                    actor.aiState !== 'jumping' && actor.aiState !== 'running_wheel' && 
+                    actor.aiState !== 'climbing') {
                     actor.aiState = 'going_to_litter';
+                    actor.pottyTimer = 180 + Math.random() * 120; // Reset timer IMMEDIATELY!
                 }
 
                 if (actor.aiState === 'going_to_litter') {
@@ -2984,7 +3028,7 @@
                         actor.mesh.rotation.y = Math.atan2(dx, dz);
                     } else {
                         actor.moving = false;
-                        // Jump into litter box
+                        // Jump cleanly into litter box once
                         triggerCatJump(actor, new THREE.Vector3(litterPos.x, FLOOR_Y + 0.16, litterPos.z - 0.05), 0.35, 0.5, 'using_litter', 6.0);
                         playSandSound();
                     }
@@ -2997,12 +3041,14 @@
                     // First 1.5s: scratch sand, Next 3s: squat potty, Last 1.5s: cover sand
                     if (actor.stateTimer > 4.5 || actor.stateTimer < 1.5) {
                         // Paw scratch animation
-                        actor.legs[0].rotation.x = Math.sin(Date.now() * 0.015) * 0.6;
-                        actor.legs[1].rotation.x = -Math.sin(Date.now() * 0.015) * 0.6;
+                        if (actor.legs && actor.legs.length >= 2) {
+                            actor.legs[0].rotation.x = Math.sin(Date.now() * 0.015) * 0.6;
+                            actor.legs[1].rotation.x = -Math.sin(Date.now() * 0.015) * 0.6;
+                        }
                     }
                     if (actor.stateTimer <= 0) {
                         // Done using litter!
-                        state.litterCleanliness = Math.max(15, state.litterCleanliness - 35);
+                        state.litterCleanliness = Math.max(15, (state.litterCleanliness || 100) - 35);
                         if (litterBoxDirtGroup) litterBoxDirtGroup.visible = true;
                         triggerCatJump(actor, new THREE.Vector3(litterPos.x, FLOOR_Y + 0.03, litterPos.z + 0.65), 0.35, 0.5, 'sit', 3.5);
                         actor.pottyTimer = 180 + Math.random() * 120; // Next potty in 3-5 mins
@@ -3012,8 +3058,6 @@
                     }
                     return;
                 }
-
-                actor.stateTimer -= effDt;
 
                 // 3. EATING AT FOOD STATION
                 if (actor.aiState === 'eating') {
@@ -3153,6 +3197,7 @@
         function commandCatEmote(cmd) {
             const actor = catActors.find(a => a.id === selectedCatId) || catActors[0];
             if (!actor) return;
+            if (actor.jumpData) actor.jumpData = null;
             const treePos = state.decorPositions['cat_tree'] || DEFAULT_DECOR_POSITIONS.cat_tree;
             const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
             const boxPos = state.decorPositions['cardboard_box'] || DEFAULT_DECOR_POSITIONS.cardboard_box;
@@ -3194,24 +3239,31 @@
          * 10. DRAG & DROP CATS ANYWHERE IN ROOM
          ********************************************************************/
         let pointerDownStartPos = { x: 0, y: 0 };
+        let pointerDownStartTime = 0;
         let catHoldTimer = null;
         let potentialCatTarget = null;
         let isCatHoldActive = false;
 
         // COLLISION RESOLUTION: PREVENT DRAGGING INTO WALLS, FURNITURE OR OTHER CATS
         function resolveCatWalkablePosition(targetPos, catId) {
-            // 1. Strict room walls (Room interior bounds)
-            targetPos.x = Math.max(-3.7, Math.min(3.7, targetPos.x));
-            targetPos.z = Math.max(-1.85, Math.min(1.55, targetPos.z));
+            // 1. Strict room walls (never drag through walls or off visible floor)
+            targetPos.x = Math.max(-3.65, Math.min(3.65, targetPos.x));
+            targetPos.z = Math.max(-1.85, Math.min(1.5, targetPos.z));
 
-            // 2. Avoid active furniture obstacles
+            // 2. Avoid all active furniture and toys (never drag through objects)
             const obstacleRadii = {
                 food_station: 0.65,
                 litter_box: 0.75,
-                cat_tree: 0.80,
+                cat_tree: 0.85,
                 cat_wheel: 0.75,
                 cardboard_box: 0.60,
                 catnip_pot: 0.45,
+                yarn_ball: 0.35,
+                donut_bed: 0.65,
+                scratching_post: 0.50,
+                cat_tunnel: 0.65,
+                sakura_left: 0.60,
+                sakura_right: 0.60,
                 wood_arch: 0.50,
                 cozy_bed: 0.65
             };
@@ -3223,7 +3275,7 @@
                         const dx = targetPos.x - pos.x;
                         const dz = targetPos.z - pos.z;
                         const dist = Math.hypot(dx, dz);
-                        const minD = obstacleRadii[decId] + 0.3;
+                        const minD = obstacleRadii[decId] + 0.28;
                         if (dist < minD && dist > 0.001) {
                             const push = minD - dist;
                             targetPos.x += (dx / dist) * push;
@@ -3248,9 +3300,9 @@
                 }
             });
 
-            // Re-clamp to walls after push-out
-            targetPos.x = Math.max(-3.7, Math.min(3.7, targetPos.x));
-            targetPos.z = Math.max(-1.85, Math.min(1.55, targetPos.z));
+            // Final re-clamp to walls
+            targetPos.x = Math.max(-3.65, Math.min(3.65, targetPos.x));
+            targetPos.z = Math.max(-1.85, Math.min(1.5, targetPos.z));
             return targetPos;
         }
 
@@ -3266,6 +3318,7 @@
                 draggedCatActor.bodyPivot.rotation.z = 0;
                 draggedCatActor.aiState = 'sit';
                 draggedCatActor.stateTimer = 3.5;
+                draggedCatActor.jumpData = null;
             }
             isDraggingCat = false;
             draggedCatActor = null;
@@ -3275,9 +3328,10 @@
         }
 
         function onPointerDown(e) {
-            if (e.target.closest('button') || e.target.closest('.cozy-card') || e.target.closest('select')) return;
+            if (e.target.closest('button') || e.target.closest('.cozy-card') || e.target.closest('select') || e.target.closest('input')) return;
             pointerDownStartPos.x = e.clientX;
             pointerDownStartPos.y = e.clientY;
+            pointerDownStartTime = Date.now();
 
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -3300,66 +3354,64 @@
 
             // Normal mode: raycast cats or stations
             const intersects = raycaster.intersectObjects(roomGroup.children, true);
-            if (intersects.length > 0) {
-                let obj = intersects[0].object;
-                while (obj.parent && obj.parent !== roomGroup) obj = obj.parent;
+            let hitCatActor = null;
+            let hitDecorId = null;
 
-                // Check running wheel with cat inside
-                const runningCat = catActors.find(a => a.aiState === 'running_wheel');
-                if ((obj.userData && obj.userData.decorId === 'cat_wheel') && runningCat) {
-                    selectedCatId = runningCat.id;
-                    runningCat.aiState = 'wander';
-                    runningCat.moving = false;
-                    runningCat.mesh.position.z += 0.45;
-                    updateInspectorPanel();
-                    selectCat(runningCat.id);
-                    openCatInspector();
-                    playCatVoice(runningCat, "greet");
-                    showFloatingNotification(`Đã bế ${runningCat.data.name} ra khỏi bánh xe! 💕`, '#10b981', '🐾');
-                    return;
-                }
-
-                // Clicked on a cat
-                if (obj.userData && obj.userData.catId) {
-                    const actor = catActors.find(a => a.id === obj.userData.catId);
-                    if (actor) {
-                        potentialCatTarget = actor;
-                        isCatHoldActive = false;
-
-                        // START 1.0 SECOND HOLD TIMER TO BEGIN DRAGGING
-                        if (catHoldTimer) clearTimeout(catHoldTimer);
-                        catHoldTimer = setTimeout(() => {
-                            // Held down for >= 1s: Initiate drag mode!
-                            if (potentialCatTarget === actor) {
-                                isDraggingCat = true;
-                                draggedCatActor = actor;
-                                isCatHoldActive = true;
-                                if (actor.aiState === 'running_wheel') {
-                                    actor.aiState = 'wander';
-                                    actor.moving = false;
-                                }
-                                playCatVoice(actor, 'jump');
-                                showFloatingNotification(`✨ Đang bế ${actor.data.name}... Bạn hãy kéo thả đến nơi muốn đặt bé nhé! 🐾`, '#ec4899', '🐱');
-                            }
-                        }, 1000);
+            for (let hit of intersects) {
+                let obj = hit.object;
+                while (obj) {
+                    if (obj.userData && obj.userData.catId) {
+                        const actor = catActors.find(a => a.id === obj.userData.catId);
+                        if (actor) { hitCatActor = actor; break; }
                     }
-                    return;
+                    if (obj.userData && obj.userData.decorId) {
+                        hitDecorId = obj.userData.decorId;
+                        break;
+                    }
+                    if (obj.parent === roomGroup || !obj.parent) break;
+                    obj = obj.parent;
                 }
+                if (hitCatActor || hitDecorId) break;
+            }
 
-                if (obj.userData && obj.userData.decorId === 'food_station') {
-                    openFeedingModal(); return;
-                }
-                if (obj.userData && obj.userData.decorId === 'litter_box') {
-                    openLitterModal(); return;
-                }
+            // Clicked on a cat
+            if (hitCatActor) {
+                potentialCatTarget = hitCatActor;
+                isCatHoldActive = false;
+
+                // START 1.0 SECOND HOLD TIMER TO BEGIN DRAGGING
+                if (catHoldTimer) clearTimeout(catHoldTimer);
+                catHoldTimer = setTimeout(() => {
+                    // Held down for >= 1s: Initiate drag mode!
+                    if (potentialCatTarget === hitCatActor) {
+                        isDraggingCat = true;
+                        draggedCatActor = hitCatActor;
+                        isCatHoldActive = true;
+                        if (hitCatActor.aiState === 'running_wheel' || hitCatActor.aiState === 'climbing') {
+                            hitCatActor.aiState = 'wander';
+                            hitCatActor.moving = false;
+                        }
+                        hitCatActor.jumpData = null;
+                        if (typeof playCatVoice === 'function') playCatVoice(hitCatActor, 'jump');
+                        showFloatingNotification(`✨ Đang bế ${hitCatActor.data.name}... Kéo thả đến nơi muốn đặt bé nhé! 🐾`, '#ec4899', '🐱');
+                    }
+                }, 1000);
+                return;
+            }
+
+            if (hitDecorId === 'food_station') {
+                openFeedingModal(); return;
+            }
+            if (hitDecorId === 'litter_box') {
+                openLitterModal(); return;
             }
         }
 
         function onPointerMove(e) {
             const moveDist = Math.hypot(e.clientX - pointerDownStartPos.x, e.clientY - pointerDownStartPos.y);
 
-            // If moved significantly before 1s, cancel hold timer
-            if (!isCatHoldActive && moveDist > 14 && catHoldTimer) {
+            // Allow natural finger/mouse wobble: only cancel hold timer if moved > 35px before 1s
+            if (!isCatHoldActive && moveDist > 35 && catHoldTimer) {
                 clearTimeout(catHoldTimer);
                 catHoldTimer = null;
             }
@@ -3399,8 +3451,10 @@
             // Laser pointer tracking
             if (laserActive) {
                 const dot = document.getElementById('laser-dot');
-                dot.style.left = e.clientX + 'px';
-                dot.style.top = e.clientY + 'px';
+                if (dot) {
+                    dot.style.left = e.clientX + 'px';
+                    dot.style.top = e.clientY + 'px';
+                }
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
@@ -3411,7 +3465,7 @@
         }
 
         function onPointerUp(e) {
-            // Cancel hold timer if released early
+            // Cancel hold timer if released
             if (catHoldTimer) {
                 clearTimeout(catHoldTimer);
                 catHoldTimer = null;
@@ -3419,28 +3473,44 @@
 
             // 1. SINGLE CLICK (< 1s hold, not dragged): OPEN CAT INSPECTOR MENU
             if (!isDraggingCat && potentialCatTarget) {
-                selectedCatId = potentialCatTarget.id;
-                selectCat(potentialCatTarget.id);
-                openCatInspector();
-                updateInspectorPanel();
-                playCatVoice(potentialCatTarget, 'greet');
+                const targetActor = potentialCatTarget;
                 potentialCatTarget = null;
                 isCatHoldActive = false;
+
+                // If inside running wheel, take cat out
+                if (targetActor.aiState === 'running_wheel') {
+                    targetActor.aiState = 'wander';
+                    targetActor.moving = false;
+                    targetActor.mesh.position.z += 0.45;
+                }
+
+                // Select cat & open inspector modal
+                selectCatForInspector(targetActor.id);
+                if (typeof playCatVoice === 'function') {
+                    playCatVoice(targetActor, 'greet');
+                }
                 return;
             }
 
             // 2. FINISHED DRAGGING (AFTER >= 1s HOLD): SNAP FIRMLY TO FLOOR
             if (isDraggingCat && draggedCatActor) {
-                const pos = draggedCatActor.mesh.position;
+                const actor = draggedCatActor;
+                isDraggingCat = false;
+                draggedCatActor = null;
+                potentialCatTarget = null;
+                isCatHoldActive = false;
+
+                const pos = actor.mesh.position;
                 pos.y = FLOOR_Y + 0.03; // NEVER FLY: Snap firmly to floor
-                draggedCatActor.bodyPivot.position.y = 0.4;
-                draggedCatActor.bodyPivot.rotation.x = 0;
-                draggedCatActor.bodyPivot.rotation.z = 0;
-                draggedCatActor.aiState = 'sit';
-                draggedCatActor.stateTimer = 4.0;
+                actor.bodyPivot.position.y = 0.4;
+                actor.bodyPivot.rotation.x = 0;
+                actor.bodyPivot.rotation.z = 0;
+                actor.aiState = 'sit';
+                actor.stateTimer = 4.0;
+                actor.jumpData = null;
 
                 // Re-verify safe floor position
-                resolveCatWalkablePosition(pos, draggedCatActor.id);
+                resolveCatWalkablePosition(pos, actor.id);
 
                 // Check landing near interactive toys
                 const treePos = state.decorPositions['cat_tree'] || DEFAULT_DECOR_POSITIONS.cat_tree;
@@ -3451,19 +3521,18 @@
                 } else if (Math.hypot(pos.x - wheelPos.x, pos.z - wheelPos.z) < 1.0) {
                     commandCatEmote('wheel');
                 } else {
-                    playCatVoice(draggedCatActor, 'greet');
-                    showFloatingNotification(`Đã đặt bé ${draggedCatActor.data.name} xuống sàn an toàn! 🐾`, '#10b981', '💖');
+                    if (typeof playCatVoice === 'function') playCatVoice(actor, 'greet');
+                    showFloatingNotification(`Đã đặt bé ${actor.data.name} xuống sàn an toàn! 🐾`, '#10b981', '💖');
                 }
-
-                isDraggingCat = false;
-                draggedCatActor = null;
-                potentialCatTarget = null;
-                isCatHoldActive = false;
+                pushStateToCloud();
+                return;
             }
 
-            isDraggingDecor = false;
+            isDraggingCat = false;
+            draggedCatActor = null;
             potentialCatTarget = null;
             isCatHoldActive = false;
+            isDraggingDecor = false;
         }
 
         function toggleLaserPointer() {
@@ -4068,6 +4137,19 @@
             selectedCatId = catId;
             closeModal('breed-modal');
             updateInspectorPanel();
+            const panel = document.getElementById('cat-inspector');
+            if (panel) panel.classList.remove('hidden');
+        }
+
+        function selectCat(catId) {
+            selectCatForInspector(catId);
+        }
+
+        function openCatInspector(catId) {
+            if (catId) selectedCatId = catId;
+            updateInspectorPanel();
+            const panel = document.getElementById('cat-inspector');
+            if (panel) panel.classList.remove('hidden');
         }
 
         function renderDecorList() {
