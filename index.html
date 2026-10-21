@@ -1436,9 +1436,18 @@
             }
         }
 
-        // CLOUD SERVER SYNC SYSTEM (REST API + INSTANT LOCAL BROADCASTCHANNEL)
-        const CLOUD_SYNC_ENDPOINT = 'https://api.restful-api.dev/objects/ff808181a09d98f701a160811efa47e6';
+        // CLOUD SERVER SYNC SYSTEM (DISCORD WEBHOOK & BOT API + LOCAL BROADCASTCHANNEL)
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1562594552181686375/Yy97zDxXX4qajvg4OMPK7CUU4UhHVU9txYcC5mOO1pmci43ZpuNRPikAOnqEmiWrOAPp';
+        const DISCORD_BOT_TOKEN = 'MTQ4MzI4NDM5NDU0MTMyMjI3MQ.GoZsp3.jxu32wGSifPcynd42VTp8Gq8YwOeTJ0h-oGbF0';
+        const DISCORD_CHANNEL_ID = '1562594535505399918';
+        const REST_API_BACKUP = 'https://api.restful-api.dev/objects/ff808181a09d98f701a160811efa47e6';
+
         let localSyncChannel = null;
+        let lastDiscordMsgId = localStorage.getItem('meowlator_discord_msg_id') || null;
+        let isSyncingToDiscord = false;
+        let pendingDiscordPush = false;
+        let hasLocalChangesToPush = false;
+
         try {
             if (window.BroadcastChannel) {
                 localSyncChannel = new BroadcastChannel('meowlator_qwan_lina_channel');
@@ -1448,15 +1457,14 @@
             }
         } catch(e) {}
 
-        let isCloudPushing = false;
-        let pendingCloudPush = false;
-
+        // 1. PUSH STATE TO DISCORD WEBHOOK (TỨC THÌ KHI CÓ THAY ĐỔI & TỰ ĐỘNG MỖI 5S)
         async function pushStateToCloud() {
             state.lastSaved = Date.now();
             state.lastUser = currentUser === 'Qwan' ? 'Qwan (Vợ 👸)' : 'Lina (Chồng 🤴)';
             state.presence = state.presence || {};
             state.presence[currentUser] = Date.now();
             saveGameState();
+            hasLocalChangesToPush = true;
 
             const syncMsg = {
                 type: 'state_sync',
@@ -1465,50 +1473,144 @@
                 state: state
             };
 
-            // 1. Instant local BroadcastChannel (0ms to same-browser profile tabs)
+            // Gửi ngay 0ms cho các tab cùng trình duyệt
             if (localSyncChannel) {
                 try { localSyncChannel.postMessage(syncMsg); } catch(e) {}
             }
 
-            // 2. Push to Cloud REST API (Cross-profile & Cross-device Phone <-> PC)
-            if (isCloudPushing) {
-                pendingCloudPush = true;
+            if (isSyncingToDiscord) {
+                pendingDiscordPush = true;
                 return;
             }
-            isCloudPushing = true;
+            isSyncingToDiscord = true;
+            hasLocalChangesToPush = false;
+
             try {
+                const jsonStr = JSON.stringify(state);
+                const catSummary = (state.cats || []).map(c => `${c.name} (Lv${c.level || 1})`).join(', ');
+
                 const payload = JSON.stringify({
-                    name: 'MeowLator_Save_QwanLina',
-                    data: state
+                    username: 'MeowLator Cloud 🐱',
+                    avatar_url: 'https://raw.githubusercontent.com/qwanle1912-gif/Lina-Cat/main/icon.png',
+                    content: '```json\n' + jsonStr + '\n```',
+                    embeds: [{
+                        title: '🏠 MeowLator - Cập Nhật Phòng Mèo 💕',
+                        description: `**${state.roomName || 'Căn Phòng Mèo'}**`,
+                        color: currentUser === 'Qwan' ? 0xec4899 : 0x06b6d4,
+                        fields: [
+                            { name: '🪙 Xu', value: `${state.coins || 0}`, inline: true },
+                            { name: '🥫 Thức ăn', value: `${state.foodStock || 0} hộp`, inline: true },
+                            { name: '🧹 Cát sạch', value: `${Math.round(state.litterCleanliness || 100)}%`, inline: true },
+                            { name: '🐱 Đàn mèo (' + (state.cats || []).length + ' bé)', value: catSummary || 'Chưa có mèo', inline: false },
+                            { name: '👤 Cập nhật bởi', value: `${state.lastUser || 'Ẩn danh'}`, inline: true },
+                            { name: '⏰ Thời gian', value: new Date().toLocaleTimeString('vi-VN'), inline: true }
+                        ],
+                        footer: { text: 'Tự động lưu Discord mỗi 5s • MeowLator' },
+                        timestamp: new Date().toISOString()
+                    }]
                 });
-                await fetch(CLOUD_SYNC_ENDPOINT, {
-                    method: 'PUT',
+
+                // Nếu đã có messageId thì gửi PATCH để cập nhật tin nhắn đó (không làm trôi kênh chat)
+                const isPatch = !!lastDiscordMsgId;
+                const endpoint = isPatch 
+                    ? `${DISCORD_WEBHOOK_URL}/messages/${lastDiscordMsgId}`
+                    : `${DISCORD_WEBHOOK_URL}?wait=true`;
+
+                const res = await fetch(endpoint, {
+                    method: isPatch ? 'PATCH' : 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: payload
                 });
-            } catch (e) {
-                console.warn('Cloud sync push warning:', e);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.id) {
+                        lastDiscordMsgId = data.id;
+                        localStorage.setItem('meowlator_discord_msg_id', data.id);
+                    }
+                } else if (isPatch && res.status === 404) {
+                    // Nếu tin nhắn cũ bị xóa, tự động tạo tin nhắn mới
+                    lastDiscordMsgId = null;
+                    localStorage.removeItem('meowlator_discord_msg_id');
+                    await fetch(`${DISCORD_WEBHOOK_URL}?wait=true`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: payload
+                    });
+                }
+
+                // Gửi backup đồng thời qua REST API
+                fetch(REST_API_BACKUP, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'MeowLator_Save_QwanLina', data: state })
+                }).catch(() => {});
+
+            } catch (err) {
+                console.warn('Discord Webhook Sync Notice:', err);
             } finally {
-                isCloudPushing = false;
-                if (pendingCloudPush) {
-                    pendingCloudPush = false;
-                    setTimeout(pushStateToCloud, 1000);
+                isSyncingToDiscord = false;
+                if (pendingDiscordPush) {
+                    pendingDiscordPush = false;
+                    setTimeout(pushStateToCloud, 1200);
                 }
             }
         }
 
+        // 2. LẤY THÔNG TIN MỚI NHẤT TỪ DISCORD (DÙNG BOT TOKEN VÀ WEBHOOK ENDPOINT)
         async function syncWithCloud(isInitial = false) {
+            let remoteState = null;
+
+            // Bước A: Lấy danh sách tin nhắn mới nhất từ Discord Bot API
             try {
-                const res = await fetch(CLOUD_SYNC_ENDPOINT, { cache: 'no-store' });
+                const res = await fetch(`https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages?limit=3`, {
+                    headers: {
+                        'Authorization': `Bot ${DISCORD_BOT_TOKEN}`
+                    }
+                });
+
                 if (res.ok) {
-                    const json = await res.json();
-                    const remoteState = json && json.data ? json.data : null;
-                    if (remoteState) {
-                        handleIncomingRemoteState(remoteState, isInitial);
+                    const msgs = await res.json();
+                    if (Array.isArray(msgs) && msgs.length > 0) {
+                        const latestId = msgs[0].id;
+                        lastDiscordMsgId = latestId;
+                        localStorage.setItem('meowlator_discord_msg_id', latestId);
+
+                        // Bước B: Đọc nội dung JSON đầy đủ qua Webhook API
+                        const msgRes = await fetch(`${DISCORD_WEBHOOK_URL}/messages/${latestId}`);
+                        if (msgRes.ok) {
+                            const fullMsg = await msgRes.json();
+                            if (fullMsg && fullMsg.content && fullMsg.content.includes('```json')) {
+                                const start = fullMsg.content.indexOf('```json') + 7;
+                                const end = fullMsg.content.indexOf('```', start);
+                                const jsonRaw = fullMsg.content.substring(start, end).trim();
+                                remoteState = JSON.parse(jsonRaw);
+                            }
+                        }
                     }
                 }
-            } catch (e) {
-                // Offline fallback - use localStorage
+            } catch(e) {
+                // Nếu Discord tạm bận, chuyển sang dự phòng REST API
+            }
+
+            // Bước C: Dự phòng REST API nếu Discord chưa trả về
+            if (!remoteState) {
+                try {
+                    const backupRes = await fetch(REST_API_BACKUP, { cache: 'no-store' });
+                    if (backupRes.ok) {
+                        const json = await backupRes.json();
+                        if (json && json.data) remoteState = json.data;
+                    }
+                } catch(e) {}
+            }
+
+            if (remoteState) {
+                handleIncomingRemoteState(remoteState, isInitial);
+            }
+
+            // Nếu có thay đổi nội bộ đang chờ gửi, tự động đẩy lên
+            if (hasLocalChangesToPush) {
+                pushStateToCloud();
             }
         }
 
@@ -1516,7 +1618,7 @@
             if (!remoteState) return;
             const now = Date.now();
 
-            // 1. Sync presence timestamps
+            // 1. Cập nhật trạng thái đang online của 2 vợ chồng
             if (remoteState.presence) {
                 state.presence = state.presence || {};
                 for (const u in remoteState.presence) {
@@ -1525,23 +1627,30 @@
                 updateLivePresenceUI();
             }
 
-            // 2. Check if remote state is newer or initial load
+            // 2. Kiểm tra nếu dữ liệu Discord mới hơn hoặc là lần tải trang đầu tiên
             const shouldAdopt = isInitial 
                 ? (remoteState.cats && remoteState.cats.length > 0 && (remoteState.coins !== undefined))
                 : (remoteState.lastSaved && (!state.lastSaved || remoteState.lastSaved > state.lastSaved));
 
             if (shouldAdopt) {
-                // Merge remote state
                 state.coins = remoteState.coins !== undefined ? remoteState.coins : state.coins;
-                state.food = remoteState.food !== undefined ? remoteState.food : state.food;
+                state.foodStock = remoteState.foodStock !== undefined ? remoteState.foodStock : (remoteState.food !== undefined ? remoteState.food : state.foodStock);
                 state.cleanSand = remoteState.cleanSand !== undefined ? remoteState.cleanSand : state.cleanSand;
+                state.litterCleanliness = remoteState.litterCleanliness !== undefined ? remoteState.litterCleanliness : state.litterCleanliness;
+                state.cleanliness = remoteState.cleanliness !== undefined ? remoteState.cleanliness : state.cleanliness;
+
                 if (Array.isArray(remoteState.cats) && remoteState.cats.length > 0) {
                     state.cats = remoteState.cats;
                 }
                 if (Array.isArray(remoteState.ownedDecor)) state.ownedDecor = remoteState.ownedDecor;
                 if (Array.isArray(remoteState.activeDecor)) state.activeDecor = remoteState.activeDecor;
                 if (remoteState.decorPositions) state.decorPositions = remoteState.decorPositions;
+                if (remoteState.wallpaper) state.wallpaper = remoteState.wallpaper;
+                if (remoteState.floorType) state.floorType = remoteState.floorType;
+                if (remoteState.curtainType) state.curtainType = remoteState.curtainType;
+                if (remoteState.roomName) state.roomName = remoteState.roomName;
                 if (remoteState.stats) state.stats = Object.assign(state.stats || {}, remoteState.stats);
+
                 state.lastSaved = remoteState.lastSaved || now;
                 state.lastUser = remoteState.lastUser || '';
 
@@ -1551,7 +1660,7 @@
                 updateLivePresenceUI();
 
                 if (!isInitial && (remoteState.lastUser && !remoteState.lastUser.includes(currentUser))) {
-                    showFloatingNotification(`✨ ${remoteState.lastUser} vừa cập nhật phòng mèo! 💕`, '#10b981', '🔄');
+                    showFloatingNotification(`✨ ${remoteState.lastUser} vừa cập nhật từ Discord! 💕`, '#10b981', '💬');
                 }
             }
         }
@@ -1584,19 +1693,19 @@
                 try { localSyncChannel.postMessage(pingMsg); } catch(e) {}
             }
 
-            // Also push presence update to cloud
-            pushStateToCloud();
+            // Đồng bộ định kỳ 5s
+            syncWithCloud(false);
         }
 
-        // Start cloud polling every 3.5 seconds
+        // TỰ ĐỘNG KIỂM TRA & UPDATE DISCORD MỖI 5 GIÂY
         setInterval(() => {
             syncWithCloud(false);
-        }, 3500);
+        }, 5000);
 
-        // Heartbeat every 20 seconds
+        // Heartbeat báo hiệu đang online mỗi 15 giây
         setInterval(() => {
             broadcastPresenceHeartbeat();
-        }, 20000);
+        }, 15000);
 
         /********************************************************************
          * 4. GAME STATE & BALANCED REAL-TIME GROWTH (10 HOURS TO LVL 3)
