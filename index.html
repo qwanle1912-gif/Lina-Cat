@@ -2107,13 +2107,23 @@
         function showFloatingNotification(text, color = '#10b981', icon = '💖') {
             const container = document.getElementById('floating-fx-layer');
             if (!container) return;
+            // GIỚI HẠN TỐI ĐA 2 THÔNG BÁO CÙNG LÚC - KHÔNG BAO GIỜ BỊ DỒN CỤC CHE MÀN HÌNH
+            while (container.children.length >= 2) {
+                container.removeChild(container.firstChild);
+            }
             const bubble = document.createElement('div');
-            bubble.className = 'cozy-pill px-4 py-1.5 text-xs sm:text-sm font-black flex items-center gap-2 shadow-2xl floating-bubble border-2 border-slate-900';
+            bubble.className = 'cozy-pill px-4 py-1.5 text-xs sm:text-sm font-black flex items-center gap-2 shadow-2xl floating-bubble border-2 border-slate-900 transition-all duration-300';
             bubble.style.backgroundColor = '#fffbf5';
             bubble.style.color = color;
             bubble.innerHTML = `<span class="text-base sm:text-lg">${icon}</span><span>${text}</span>`;
             container.appendChild(bubble);
-            setTimeout(() => { if (bubble.parentNode) bubble.parentNode.removeChild(bubble); }, 2500);
+            setTimeout(() => {
+                if (bubble.parentNode) {
+                    bubble.style.opacity = '0';
+                    bubble.style.transform = 'translateY(-8px)';
+                    setTimeout(() => { if (bubble.parentNode) bubble.parentNode.removeChild(bubble); }, 300);
+                }
+            }, 2300);
         }
 
         /********************************************************************
@@ -5027,6 +5037,7 @@
                 name: breed.name.split(' ')[0],
                 breedId,
                 hunger: 100,
+                water: 100,
                 happiness: 100,
                 love: 100,
                 level: 1,
@@ -5178,6 +5189,7 @@
                 name: 'Boss Con',
                 breedId: randomBreed.id,
                 hunger: 100,
+                water: 100,
                 happiness: 100,
                 love: 100,
                 level: 1,
