@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js CDN for 3D graphics -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- MQTT.js CDN for real-time WebSocket sync -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <!-- Google Fonts: Nunito, Inter & Dancing Script for Lina's Rug -->
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;600;700;900&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
     <style>
@@ -654,23 +656,6 @@
                 <input type="checkbox" id="chk-auto-meow" checked onchange="saveGameState()" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
             </div>
 
-            <!-- Discord Cloud Sync Config -->
-            <div class="bg-indigo-50 p-3 rounded-2xl border-2 border-indigo-200 text-xs font-bold text-slate-700 space-y-2">
-                <div class="font-black text-indigo-900 flex items-center justify-between">
-                    <span class="flex items-center gap-1.5"><span class="text-base">💬</span><span>Đồng Bộ Discord Cloud</span></span>
-                    <span class="text-[10px] text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-black">Webhook Đang Bật</span>
-                </div>
-                <div class="space-y-1">
-                    <label class="text-[11px] text-slate-600 block">Mã Discord Bot Token (Lưu trong máy, không bị quét thu hồi):</label>
-                    <div class="flex gap-2">
-                        <input type="password" id="input-discord-bot-token" placeholder="Dán Bot Token mới vào đây..." class="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-indigo-500 font-mono bg-white">
-                        <button onclick="saveDiscordBotToken()" class="cozy-btn px-3 py-1.5 bg-indigo-500 text-white font-black text-xs shrink-0 shadow-sm">Lưu</button>
-                    </div>
-                </div>
-                <p class="text-[10px] text-slate-500 leading-tight">
-                    💡 Webhook tự động cập nhật phòng lên Discord mỗi 5s. Nhập Bot Token mới để đọc dữ liệu đồng bộ giữa các máy!
-                </p>
-            </div>
 
             <!-- Save & GitHub Persistence Info -->
             <div class="bg-indigo-50 p-3 rounded-2xl border-2 border-indigo-200 text-xs font-bold text-slate-600 space-y-1">
@@ -1438,8 +1423,8 @@
             state.presence = state.presence || {};
             state.presence[currentUser] = now;
 
-            const qwanActive = (now - (state.presence.Qwan || 0)) < 30000;
-            const linaActive = (now - (state.presence.Lina || 0)) < 30000;
+            const qwanActive = (now - (state.presence.Qwan || 0)) < 25000;
+            const linaActive = (now - (state.presence.Lina || 0)) < 25000;
             const isBothOnline = (qwanActive && linaActive);
 
             const badgeText = document.getElementById('sync-status-text');
@@ -1454,207 +1439,234 @@
             }
         }
 
-        // CLOUD SERVER SYNC SYSTEM (DISCORD WEBHOOK & BOT API + LOCAL BROADCASTCHANNEL)
-        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1562594552181686375/Yy97zDxXX4qajvg4OMPK7CUU4UhHVU9txYcC5mOO1pmci43ZpuNRPikAOnqEmiWrOAPp';
-        // Bot Token được lưu an toàn trong trình duyệt (localStorage), không để lộ công khai lên GitHub để tránh bị Discord Safety Jim quét thu hồi
-        function getDiscordBotToken() {
-            return localStorage.getItem('meowlator_discord_bot_token') || '';
+        /********************************************************************
+         * HỆ THỐNG ĐỒNG BỘ 3 LỚP: MQTT WEBSOCKETS + CLOUD KV + BROADCASTCHANNEL
+         * (Tự động kết nối 2 máy Qwan & Lina, đã loại bỏ hoàn toàn Discord)
+         ********************************************************************/
+        const MQTT_BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
+        const MQTT_TOPIC_EVENT = 'meowlator/qwan_lina_cozy_room_v1/events';
+        const MQTT_TOPIC_STATE = 'meowlator/qwan_lina_cozy_room_v1/state';
+
+        const KVDB_CLOUD_URL = 'https://kvdb.io/A955nC7Cg9jS439oP81sVf/meowlator_qwan_lina_room_v2';
+        const REST_BACKUP_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a160811efa47e6';
+
+        const clientSessionId = 'sess_' + Math.random().toString(36).substring(2, 10);
+        let mqttClient = null;
+        let localSyncChannel = null;
+        let isPushingCloud = false;
+        let pendingCloudPush = false;
+        let partnerLaserMesh = null;
+        let partnerLaserHideTimer = null;
+
+        // 1. Tạo chấm đèn Laser 3D trên sàn khi người kia chiếu đèn
+        function ensurePartnerLaserMesh() {
+            if (partnerLaserMesh) {
+                if (roomGroup && partnerLaserMesh.parent !== roomGroup) {
+                    roomGroup.add(partnerLaserMesh);
+                }
+                return;
+            }
+            if (!roomGroup) return;
+            const geo = new THREE.SphereGeometry(0.09, 12, 12);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
+            partnerLaserMesh = new THREE.Mesh(geo, mat);
+            partnerLaserMesh.visible = false;
+            roomGroup.add(partnerLaserMesh);
         }
 
-        function saveDiscordBotToken() {
-            const input = document.getElementById('input-discord-bot-token');
-            if (input) {
-                const val = input.value.trim();
-                if (val) {
-                    localStorage.setItem('meowlator_discord_bot_token', val);
-                    showFloatingNotification('Đã lưu Discord Bot Token an toàn! 💕', '#10b981', '🔑');
-                    syncWithCloud(true);
-                } else {
-                    localStorage.removeItem('meowlator_discord_bot_token');
-                    showFloatingNotification('Đã xóa Bot Token.', '#64748b', 'ℹ️');
+        // 2. Khởi tạo kết nối MQTT WebSockets + BroadcastChannel
+        function initRealtimeMultiplayer() {
+            // Kênh nội bộ giữa các tab cùng máy
+            try {
+                if (window.BroadcastChannel) {
+                    localSyncChannel = new BroadcastChannel('meowlator_qwan_lina_channel');
+                    localSyncChannel.onmessage = (ev) => {
+                        if (ev.data && ev.data.senderId !== clientSessionId) {
+                            handleRealtimePacket(ev.data);
+                        }
+                    };
+                }
+            } catch (e) {}
+
+            // Kết nối MQTT over WebSockets xuyên mạng cho 2 máy khác nhau
+            if (typeof mqtt !== 'undefined') {
+                try {
+                    mqttClient = mqtt.connect(MQTT_BROKER_URL, {
+                        clientId: 'meowlator_' + currentUser + '_' + clientSessionId,
+                        clean: true,
+                        connectTimeout: 5000,
+                        reconnectPeriod: 3000
+                    });
+
+                    mqttClient.on('connect', () => {
+                        mqttClient.subscribe([MQTT_TOPIC_EVENT, MQTT_TOPIC_STATE], { qos: 0 });
+                        broadcastPresenceHeartbeat();
+                    });
+
+                    mqttClient.on('message', (topic, message) => {
+                        try {
+                            const packet = JSON.parse(message.toString());
+                            if (packet && packet.senderId !== clientSessionId) {
+                                handleRealtimePacket(packet);
+                            }
+                        } catch (err) {}
+                    });
+                } catch (err) {
+                    console.warn('MQTT fallback sang Cloud KV:', err);
                 }
             }
         }
-        const DISCORD_CHANNEL_ID = '1562594535505399918';
-        const REST_API_BACKUP = 'https://api.restful-api.dev/objects/ff808181a09d98f701a160811efa47e6';
 
-        let localSyncChannel = null;
-        let lastDiscordMsgId = localStorage.getItem('meowlator_discord_msg_id') || null;
-        let isSyncingToDiscord = false;
-        let pendingDiscordPush = false;
-        let hasLocalChangesToPush = false;
+        // 3. Gửi gói tin tức thời qua cả MQTT và BroadcastChannel
+        function publishRealtimePacket(payload, retainState = false) {
+            const packet = Object.assign({}, payload, {
+                senderId: clientSessionId,
+                user: currentUser,
+                time: Date.now()
+            });
 
-        try {
-            if (window.BroadcastChannel) {
-                localSyncChannel = new BroadcastChannel('meowlator_qwan_lina_channel');
-                localSyncChannel.onmessage = function(ev) {
-                    if (ev.data) handleIncomingSyncMessage(ev.data, 'local');
-                };
+            if (localSyncChannel) {
+                try { localSyncChannel.postMessage(packet); } catch (e) {}
             }
-        } catch(e) {}
 
-        // 1. PUSH STATE TO DISCORD WEBHOOK (TỨC THÌ KHI CÓ THAY ĐỔI & TỰ ĐỘNG MỖI 5S)
-        async function pushStateToCloud() {
+            if (mqttClient && mqttClient.connected) {
+                try {
+                    const topic = retainState ? MQTT_TOPIC_STATE : MQTT_TOPIC_EVENT;
+                    mqttClient.publish(topic, JSON.stringify(packet), {
+                        qos: 0,
+                        retain: !!retainState
+                    });
+                } catch (e) {}
+            }
+        }
+
+        // 4. Xử lý gói tin nhận được từ máy của người kia
+        function handleRealtimePacket(packet) {
+            if (!packet) return;
+
+            // Luôn cập nhật dấu hiệu đang online của người gửi
+            if (packet.user) {
+                state.presence = state.presence || {};
+                state.presence[packet.user] = Date.now();
+                updateLivePresenceUI();
+            }
+
+            if (packet.type === 'heartbeat') {
+                return;
+            }
+
+            if (packet.type === 'state_sync' && packet.state) {
+                handleIncomingRemoteState(packet.state, false, packet.actionNote);
+                return;
+            }
+
+            // Đồng bộ trực tiếp khi người kia đang bế mèo kéo đi
+            if (packet.type === 'cat_drag_move') {
+                const actor = catActors.find(a => a.id === packet.catId);
+                if (actor && (!isDraggingCat || draggedCatActor !== actor)) {
+                    actor.mesh.position.x = packet.x;
+                    actor.mesh.position.z = packet.z;
+                    actor.mesh.position.y = FLOOR_Y + 0.12;
+                    actor.aiState = 'sit';
+                    actor.stateTimer = 3.0;
+                }
+                return;
+            }
+
+            // Đồng bộ trực tiếp khi người kia đang lia đèn Laser
+            if (packet.type === 'laser_move') {
+                ensurePartnerLaserMesh();
+                laserTarget3D.set(packet.x, FLOOR_Y + 0.05, packet.z);
+                if (partnerLaserMesh) {
+                    partnerLaserMesh.position.copy(laserTarget3D);
+                    partnerLaserMesh.visible = true;
+                    clearTimeout(partnerLaserHideTimer);
+                    partnerLaserHideTimer = setTimeout(() => {
+                        if (partnerLaserMesh) partnerLaserMesh.visible = false;
+                    }, 1200);
+                }
+                return;
+            }
+
+            // Đồng bộ khi người kia ra lệnh cho mèo (Ngủ, Bánh xe, Leo tháp, Nhào lộn...)
+            if (packet.type === 'cat_emote') {
+                if (packet.catId) selectedCatId = packet.catId;
+                commandCatEmote(packet.cmd, true);
+                return;
+            }
+        }
+
+        // 5. Đẩy toàn bộ State lên MQTT (Retained) + Cloud KV Storage
+        async function pushStateToCloud(actionNote = '') {
             state.lastSaved = Date.now();
             state.lastUser = currentUser === 'Qwan' ? 'Qwan (Vợ 👸)' : 'Lina (Chồng 🤴)';
             state.presence = state.presence || {};
             state.presence[currentUser] = Date.now();
             saveGameState();
-            hasLocalChangesToPush = true;
 
-            const syncMsg = {
+            // Phát tức thì qua MQTT (retain: true để lưu trên Broker) và BroadcastChannel
+            publishRealtimePacket({
                 type: 'state_sync',
-                user: currentUser,
-                time: Date.now(),
+                actionNote: actionNote,
                 state: state
-            };
+            }, true);
 
-            // Gửi ngay 0ms cho các tab cùng trình duyệt
-            if (localSyncChannel) {
-                try { localSyncChannel.postMessage(syncMsg); } catch(e) {}
-            }
-
-            if (isSyncingToDiscord) {
-                pendingDiscordPush = true;
+            if (isPushingCloud) {
+                pendingCloudPush = true;
                 return;
             }
-            isSyncingToDiscord = true;
-            hasLocalChangesToPush = false;
+            isPushingCloud = true;
 
             try {
-                const jsonStr = JSON.stringify(state);
-                const catSummary = (state.cats || []).map(c => `${c.name} (Lv${c.level || 1})`).join(', ');
-
-                const payload = JSON.stringify({
-                    username: 'MeowLator Cloud 🐱',
-                    avatar_url: 'https://raw.githubusercontent.com/qwanle1912-gif/Lina-Cat/main/icon.png',
-                    content: '```json\n' + jsonStr + '\n```',
-                    embeds: [{
-                        title: '🏠 MeowLator - Cập Nhật Phòng Mèo 💕',
-                        description: `**${state.roomName || 'Căn Phòng Mèo'}**`,
-                        color: currentUser === 'Qwan' ? 0xec4899 : 0x06b6d4,
-                        fields: [
-                            { name: '🪙 Xu', value: `${state.coins || 0}`, inline: true },
-                            { name: '🥫 Thức ăn', value: `${state.foodStock || 0} hộp`, inline: true },
-                            { name: '🧹 Cát sạch', value: `${Math.round(state.litterCleanliness || 100)}%`, inline: true },
-                            { name: '🐱 Đàn mèo (' + (state.cats || []).length + ' bé)', value: catSummary || 'Chưa có mèo', inline: false },
-                            { name: '👤 Cập nhật bởi', value: `${state.lastUser || 'Ẩn danh'}`, inline: true },
-                            { name: '⏰ Thời gian', value: new Date().toLocaleTimeString('vi-VN'), inline: true }
-                        ],
-                        footer: { text: 'Tự động lưu Discord mỗi 5s • MeowLator' },
-                        timestamp: new Date().toISOString()
-                    }]
-                });
-
-                // Nếu đã có messageId thì gửi PATCH để cập nhật tin nhắn đó (không làm trôi kênh chat)
-                const isPatch = !!lastDiscordMsgId;
-                const endpoint = isPatch 
-                    ? `${DISCORD_WEBHOOK_URL}/messages/${lastDiscordMsgId}`
-                    : `${DISCORD_WEBHOOK_URL}?wait=true`;
-
-                const res = await fetch(endpoint, {
-                    method: isPatch ? 'PATCH' : 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: payload
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.id) {
-                        lastDiscordMsgId = data.id;
-                        localStorage.setItem('meowlator_discord_msg_id', data.id);
-                    }
-                } else if (isPatch && res.status === 404) {
-                    // Nếu tin nhắn cũ bị xóa, tự động tạo tin nhắn mới
-                    lastDiscordMsgId = null;
-                    localStorage.removeItem('meowlator_discord_msg_id');
-                    await fetch(`${DISCORD_WEBHOOK_URL}?wait=true`, {
+                await Promise.allSettled([
+                    fetch(KVDB_CLOUD_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: payload
-                    });
-                }
-
-                // Gửi backup đồng thời qua REST API
-                fetch(REST_API_BACKUP, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: 'MeowLator_Save_QwanLina', data: state })
-                }).catch(() => {});
-
-            } catch (err) {
-                console.warn('Discord Webhook Sync Notice:', err);
-            } finally {
-                isSyncingToDiscord = false;
-                if (pendingDiscordPush) {
-                    pendingDiscordPush = false;
-                    setTimeout(pushStateToCloud, 1200);
+                        body: JSON.stringify(state)
+                    }),
+                    fetch(REST_BACKUP_URL, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: 'MeowLator_Save_QwanLina', data: state })
+                    })
+                ]);
+            } catch (err) {} finally {
+                isPushingCloud = false;
+                if (pendingCloudPush) {
+                    pendingCloudPush = false;
+                    setTimeout(() => pushStateToCloud(), 1000);
                 }
             }
         }
 
-        // 2. LẤY THÔNG TIN MỚI NHẤT TỪ DISCORD (DÙNG BOT TOKEN VÀ WEBHOOK ENDPOINT)
+        // 6. Tải trạng thái từ Cloud KV khi mới mở trang hoặc định kỳ kiểm tra
         async function syncWithCloud(isInitial = false) {
             let remoteState = null;
 
-            // Bước A: Lấy danh sách tin nhắn mới nhất từ Discord Bot API
             try {
-                const res = await fetch(`https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages?limit=3`, {
-                    headers: {
-                        'Authorization': `Bot ${getDiscordBotToken()}`
-                    }
-                });
+                const res = await fetch(KVDB_CLOUD_URL, { cache: 'no-store' });
+                if (res.ok) remoteState = await res.json();
+            } catch (e) {}
 
-                if (res.ok) {
-                    const msgs = await res.json();
-                    if (Array.isArray(msgs) && msgs.length > 0) {
-                        const latestId = msgs[0].id;
-                        lastDiscordMsgId = latestId;
-                        localStorage.setItem('meowlator_discord_msg_id', latestId);
-
-                        // Bước B: Đọc nội dung JSON đầy đủ qua Webhook API
-                        const msgRes = await fetch(`${DISCORD_WEBHOOK_URL}/messages/${latestId}`);
-                        if (msgRes.ok) {
-                            const fullMsg = await msgRes.json();
-                            if (fullMsg && fullMsg.content && fullMsg.content.includes('```json')) {
-                                const start = fullMsg.content.indexOf('```json') + 7;
-                                const end = fullMsg.content.indexOf('```', start);
-                                const jsonRaw = fullMsg.content.substring(start, end).trim();
-                                remoteState = JSON.parse(jsonRaw);
-                            }
-                        }
-                    }
-                }
-            } catch(e) {
-                // Nếu Discord tạm bận, chuyển sang dự phòng REST API
-            }
-
-            // Bước C: Dự phòng REST API nếu Discord chưa trả về
             if (!remoteState) {
                 try {
-                    const backupRes = await fetch(REST_API_BACKUP, { cache: 'no-store' });
+                    const backupRes = await fetch(REST_BACKUP_URL, { cache: 'no-store' });
                     if (backupRes.ok) {
                         const json = await backupRes.json();
                         if (json && json.data) remoteState = json.data;
                     }
-                } catch(e) {}
+                } catch (e) {}
             }
 
             if (remoteState) {
                 handleIncomingRemoteState(remoteState, isInitial);
             }
-
-            // Nếu có thay đổi nội bộ đang chờ gửi, tự động đẩy lên
-            if (hasLocalChangesToPush) {
-                pushStateToCloud();
-            }
         }
 
-        function handleIncomingRemoteState(remoteState, isInitial = false) {
+        function handleIncomingRemoteState(remoteState, isInitial = false, actionNote = '') {
             if (!remoteState) return;
             const now = Date.now();
 
-            // 1. Cập nhật trạng thái đang online của 2 vợ chồng
             if (remoteState.presence) {
                 state.presence = state.presence || {};
                 for (const u in remoteState.presence) {
@@ -1663,27 +1675,29 @@
                 updateLivePresenceUI();
             }
 
-            // 2. Kiểm tra nếu dữ liệu Discord mới hơn hoặc là lần tải trang đầu tiên
-            const shouldAdopt = isInitial 
-                ? (remoteState.cats && remoteState.cats.length > 0 && (remoteState.coins !== undefined))
+            const shouldAdopt = isInitial
+                ? (remoteState.cats && remoteState.cats.length > 0 && remoteState.coins !== undefined && (!state.lastSaved || (remoteState.lastSaved || 0) >= state.lastSaved))
                 : (remoteState.lastSaved && (!state.lastSaved || remoteState.lastSaved > state.lastSaved));
 
             if (shouldAdopt) {
+                const prevCatCount = state.cats ? state.cats.length : 0;
+                const prevDecorStr = JSON.stringify(state.activeDecor || []);
+                const prevPosStr = JSON.stringify(state.decorPositions || {});
+
                 state.coins = remoteState.coins !== undefined ? remoteState.coins : state.coins;
-                state.foodStock = remoteState.foodStock !== undefined ? remoteState.foodStock : (remoteState.food !== undefined ? remoteState.food : state.foodStock);
-                state.cleanSand = remoteState.cleanSand !== undefined ? remoteState.cleanSand : state.cleanSand;
+                state.foodStock = remoteState.foodStock !== undefined ? remoteState.foodStock : state.foodStock;
+                state.foodBowlPercent = remoteState.foodBowlPercent !== undefined ? remoteState.foodBowlPercent : state.foodBowlPercent;
                 state.litterCleanliness = remoteState.litterCleanliness !== undefined ? remoteState.litterCleanliness : state.litterCleanliness;
                 state.cleanliness = remoteState.cleanliness !== undefined ? remoteState.cleanliness : state.cleanliness;
+                state.hunger = remoteState.hunger !== undefined ? remoteState.hunger : state.hunger;
+                state.happiness = remoteState.happiness !== undefined ? remoteState.happiness : state.happiness;
 
-                if (Array.isArray(remoteState.cats) && remoteState.cats.length > 0) {
-                    state.cats = remoteState.cats;
-                }
+                if (Array.isArray(remoteState.cats) && remoteState.cats.length > 0) state.cats = remoteState.cats;
                 if (Array.isArray(remoteState.ownedDecor)) state.ownedDecor = remoteState.ownedDecor;
                 if (Array.isArray(remoteState.activeDecor)) state.activeDecor = remoteState.activeDecor;
                 if (remoteState.decorPositions) state.decorPositions = remoteState.decorPositions;
-                if (remoteState.wallpaper) state.wallpaper = remoteState.wallpaper;
-                if (remoteState.floorType) state.floorType = remoteState.floorType;
-                if (remoteState.curtainType) state.curtainType = remoteState.curtainType;
+                if (remoteState.wallStyle) state.wallStyle = remoteState.wallStyle;
+                if (remoteState.floorStyle) state.floorStyle = remoteState.floorStyle;
                 if (remoteState.roomName) state.roomName = remoteState.roomName;
                 if (remoteState.stats) state.stats = Object.assign(state.stats || {}, remoteState.stats);
 
@@ -1691,24 +1705,37 @@
                 state.lastUser = remoteState.lastUser || '';
 
                 saveGameState();
-                rebuildRoomDecorAndCats();
+
+                // Chỉ dựng lại Mesh 3D nếu số lượng mèo hoặc vị trí đồ đạc thay đổi (tránh giật hình)
+                const needRebuild = isInitial ||
+                    state.cats.length !== prevCatCount ||
+                    JSON.stringify(state.activeDecor) !== prevDecorStr ||
+                    JSON.stringify(state.decorPositions) !== prevPosStr;
+
+                if (needRebuild) {
+                    rebuildRoomDecorAndCats();
+                } else {
+                    // Cập nhật phụ kiện và kích thước trực tiếp trên mèo hiện tại
+                    state.cats.forEach(cData => {
+                        const actor = catActors.find(a => a.id === cData.id);
+                        if (actor) {
+                            actor.data = cData;
+                            const scVal = getCatScale(cData.level || 1, cData.growthExp || 0);
+                            actor.mesh.scale.set(scVal, scVal, scVal);
+                            buildCatAccessoryMesh(actor.accessoryGroup, cData.accessory || 'bell');
+                        }
+                    });
+                }
+
+                updateFoodBowlVisual();
+                if (litterBoxDirtGroup) litterBoxDirtGroup.visible = (state.litterCleanliness < 90);
                 updateUI();
                 updateLivePresenceUI();
 
-                if (!isInitial && (remoteState.lastUser && !remoteState.lastUser.includes(currentUser))) {
-                    showFloatingNotification(`✨ ${remoteState.lastUser} vừa cập nhật từ Discord! 💕`, '#10b981', '💬');
+                if (!isInitial && remoteState.lastUser && !remoteState.lastUser.includes(currentUser)) {
+                    const msg = actionNote ? `${remoteState.lastUser}: ${actionNote}` : `✨ ${remoteState.lastUser} vừa chăm mèo & cập nhật phòng! 💕`;
+                    showFloatingNotification(msg, '#10b981', '💑');
                 }
-            }
-        }
-
-        function handleIncomingSyncMessage(data, source = 'local') {
-            if (!data) return;
-            if (data.type === 'state_sync' && data.state && data.user !== currentUser) {
-                handleIncomingRemoteState(data.state, false);
-            } else if (data.type === 'heartbeat' && data.user) {
-                state.presence = state.presence || {};
-                state.presence[data.user] = data.time || Date.now();
-                updateLivePresenceUI();
             }
         }
 
@@ -1717,31 +1744,12 @@
             state.presence = state.presence || {};
             state.presence[currentUser] = now;
             updateLivePresenceUI();
-
-            const pingMsg = {
-                type: 'heartbeat',
-                user: currentUser,
-                time: now
-            };
-
-            // Local broadcast
-            if (localSyncChannel) {
-                try { localSyncChannel.postMessage(pingMsg); } catch(e) {}
-            }
-
-            // Đồng bộ định kỳ 5s
-            syncWithCloud(false);
+            publishRealtimePacket({ type: 'heartbeat' }, false);
         }
 
-        // TỰ ĐỘNG KIỂM TRA & UPDATE DISCORD MỖI 5 GIÂY
-        setInterval(() => {
-            syncWithCloud(false);
-        }, 5000);
-
-        // Heartbeat báo hiệu đang online mỗi 15 giây
-        setInterval(() => {
-            broadcastPresenceHeartbeat();
-        }, 15000);
+        // Khởi chạy định kỳ
+        setInterval(() => { broadcastPresenceHeartbeat(); }, 10000);
+        setInterval(() => { syncWithCloud(false); }, 15000);
 
         /********************************************************************
          * 4. GAME STATE & BALANCED REAL-TIME GROWTH (10 HOURS TO LVL 3)
@@ -3094,7 +3102,7 @@
                 if (actor.jumpData) return;
 
                 // 1. LASER POINTER CHASE (SMOOTH & RESPONSIVE FOLLOW)
-                if (laserActive) {
+                if (laserActive || (partnerLaserMesh && partnerLaserMesh.visible)) {
                     actor.aiState = 'wander';
                     actor.moving = true;
                     const dx = laserTarget3D.x - actor.mesh.position.x;
@@ -3391,9 +3399,12 @@
         /********************************************************************
          * 9. CAT EMOTE COMMANDS (ON COMMAND ANIMATIONS)
          ********************************************************************/
-        function commandCatEmote(cmd) {
+        function commandCatEmote(cmd, fromRemote = false) {
             const actor = catActors.find(a => a.id === selectedCatId) || catActors[0];
             if (!actor) return;
+            if (!fromRemote) {
+                publishRealtimePacket({ type: 'cat_emote', catId: actor.id, cmd: cmd });
+            }
             if (actor.jumpData) actor.jumpData = null;
             const treePos = state.decorPositions['cat_tree'] || DEFAULT_DECOR_POSITIONS.cat_tree;
             const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
@@ -3628,6 +3639,18 @@
                     // Gentle lift while dragging, paws close to floor (no flying!)
                     draggedCatActor.mesh.position.y = FLOOR_Y + 0.12;
                     draggedCatActor.bodyPivot.position.y = 0.36;
+
+                    // Gửi gói tin cat_drag_move mỗi 80ms
+                    const now = Date.now();
+                    if (!draggedCatActor._lastDragSync || (now - draggedCatActor._lastDragSync > 80)) {
+                        draggedCatActor._lastDragSync = now;
+                        publishRealtimePacket({
+                            type: 'cat_drag_move',
+                            catId: draggedCatActor.id,
+                            x: Math.round(pt.x * 100) / 100,
+                            z: Math.round(pt.z * 100) / 100
+                        });
+                    }
                 }
                 return;
             }
@@ -3657,7 +3680,19 @@
                 raycaster.setFromCamera(mouse, camera);
                 const pt = new THREE.Vector3();
                 raycaster.ray.intersectPlane(dragPlane, pt);
-                if (pt) laserTarget3D.copy(pt);
+                if (pt) {
+                    laserTarget3D.copy(pt);
+                    // Gửi gói tin laser_move mỗi 70ms
+                    const now = Date.now();
+                    if (!window._lastLaserSyncTime || (now - window._lastLaserSyncTime > 70)) {
+                        window._lastLaserSyncTime = now;
+                        publishRealtimePacket({
+                            type: 'laser_move',
+                            x: Math.round(pt.x * 100) / 100,
+                            z: Math.round(pt.z * 100) / 100
+                        });
+                    }
+                }
             }
         }
 
@@ -4538,6 +4573,7 @@
             checkUserLogin();
             applySidePanelStates();
             initThreeScene();
+            initRealtimeMultiplayer();
             updateRealTimeAndWeather();
             setInterval(updateRealTimeAndWeather, 15000);
             updateUI();
