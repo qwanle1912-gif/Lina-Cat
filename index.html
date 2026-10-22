@@ -435,6 +435,16 @@
                 <div class="flex justify-between items-center">
                     <span>🥫 No bụng:</span><span id="insp-hunger" class="text-emerald-600 font-extrabold">90%</span>
                 </div>
+                <!-- THANH NƯỚC UỐNG (CHỈ UỐNG NẾU KHÁT) -->
+                <div>
+                    <div class="flex justify-between items-center mb-0.5">
+                        <span>💧 Nước uống:</span>
+                        <span id="insp-water-txt" class="text-sky-600 font-black">Đủ nước (85%)</span>
+                    </div>
+                    <div class="stat-bar-track h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div id="insp-water-bar" class="stat-bar-fill bg-gradient-to-r from-sky-400 to-blue-500" style="width: 85%"></div>
+                    </div>
+                </div>
                 <div class="flex justify-between items-center">
                     <span>💕 Thân thiết:</span><span id="insp-love" class="text-rose-500 font-extrabold">85%</span>
                 </div>
@@ -449,7 +459,7 @@
                     </div>
                     <div class="text-[10.5px] font-bold text-slate-600 mt-1 flex items-center justify-between">
                         <span>💭 Muốn chơi: <strong id="insp-fav-toy" class="text-purple-600 font-black">Leo tháp mèo 🌳</strong></span>
-                        <span class="text-emerald-700 font-extrabold text-[9.5px] bg-emerald-100/90 px-1.5 py-0.5 rounded-md border border-emerald-300">✨ Tự động đi chơi</span>
+                        <span id="insp-play-tag" class="text-emerald-700 font-extrabold text-[9.5px] bg-emerald-100/90 px-1.5 py-0.5 rounded-md border border-emerald-300">✨ Tự động đi chơi</span>
                     </div>
                 </div>
                 <div class="flex justify-between items-center pt-1 border-t border-slate-200">
@@ -459,25 +469,28 @@
 
             <!-- QUICK CARE BUTTONS (WITH COOLDOWNS & LIMITS) -->
             <div class="grid grid-cols-4 gap-1.5">
-                <button onclick="petSelectedCat()" id="btn-pet-action" class="cozy-btn py-1.5 text-xs font-black bg-pink-100 hover:bg-pink-200">👋 Vuốt</button>
-                <button onclick="openFeedingModal()" class="cozy-btn py-1.5 text-xs font-black bg-amber-100 hover:bg-amber-200">🥫 Ăn</button>
-                <button onclick="actionBrush()" id="btn-brush-action" class="cozy-btn py-1.5 text-xs font-black bg-teal-100 hover:bg-teal-200">🪮 Chải</button>
-                <button onclick="cycleSelectedCatAccessory()" class="cozy-btn py-1.5 text-xs font-black bg-purple-100 hover:bg-purple-200">🎀 Mũ</button>
+                <button onclick="petSelectedCat()" id="btn-pet-action" class="cozy-btn py-1.5 text-xs font-black bg-pink-100 hover:bg-pink-200 transition-all">👋 Vuốt</button>
+                <button onclick="openFeedingModal()" class="cozy-btn py-1.5 text-xs font-black bg-amber-100 hover:bg-amber-200 transition-all">🥫 Ăn</button>
+                <button onclick="actionBrush()" id="btn-brush-action" class="cozy-btn py-1.5 text-xs font-black bg-teal-100 hover:bg-teal-200 transition-all">🪮 Chải</button>
+                <button onclick="cycleSelectedCatAccessory()" class="cozy-btn py-1.5 text-xs font-black bg-purple-100 hover:bg-purple-200 transition-all">🎀 Mũ</button>
             </div>
 
             <!-- ON-DEMAND EMOTE COMMAND BAR -->
             <div class="mt-2.5 pt-2 border-t border-slate-200">
-                <div class="text-[10px] font-black uppercase text-slate-400 mb-1">LỆNH CHO MÈO LÀM THEO:</div>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[10px] font-black uppercase text-slate-400">LỆNH CHO MÈO LÀM THEO:</span>
+                    <span id="cmd-cooldown-hint" class="text-[9.5px] font-bold text-amber-600 hidden">⏳ Đang hồi chiêu...</span>
+                </div>
                 <div class="grid grid-cols-3 gap-1 text-[11px] font-black">
-                    <button onclick="commandCatEmote('sleep')" class="cozy-btn py-1 bg-indigo-50 hover:bg-indigo-100">😴 Đi ngủ</button>
-                    <button onclick="commandCatEmote('wheel')" class="cozy-btn py-1 bg-cyan-50 hover:bg-cyan-100">🏃 Bánh xe</button>
-                    <button onclick="commandCatEmote('tree')" class="cozy-btn py-1 bg-amber-50 hover:bg-amber-100">🌳 Leo tháp</button>
-                    <button onclick="commandCatEmote('box')" class="cozy-btn py-1 bg-orange-50 hover:bg-orange-100">📦 Chui hộp</button>
-                    <button onclick="commandCatEmote('flip')" class="cozy-btn py-1 bg-pink-50 hover:bg-pink-100">🤸 Nhào lộn</button>
-                    <button onclick="commandCatEmote('come')" class="cozy-btn py-1 bg-emerald-50 hover:bg-emerald-100">🐾 Lại đây</button>
+                    <button id="btn-cmd-sleep" onclick="commandCatEmote('sleep')" class="cozy-btn py-1 bg-indigo-50 hover:bg-indigo-100 transition-all">😴 Đi ngủ</button>
+                    <button id="btn-cmd-wheel" onclick="commandCatEmote('wheel')" class="cozy-btn py-1 bg-cyan-50 hover:bg-cyan-100 transition-all">🏃 Bánh xe</button>
+                    <button id="btn-cmd-tree" onclick="commandCatEmote('tree')" class="cozy-btn py-1 bg-amber-50 hover:bg-amber-100 transition-all">🌳 Leo tháp</button>
+                    <button id="btn-cmd-box" onclick="commandCatEmote('box')" class="cozy-btn py-1 bg-orange-50 hover:bg-orange-100 transition-all">📦 Chui hộp</button>
+                    <button id="btn-cmd-flip" onclick="commandCatEmote('flip')" class="cozy-btn py-1 bg-pink-50 hover:bg-pink-100 transition-all">🤸 Nhào lộn</button>
+                    <button id="btn-cmd-come" onclick="commandCatEmote('come')" class="cozy-btn py-1 bg-emerald-50 hover:bg-emerald-100 transition-all">🐾 Lại đây</button>
                 </div>
                 <div class="mt-1">
-                    <button onclick="commandCatEmote('drink')" class="w-full cozy-btn py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-black flex items-center justify-center gap-1">💧 Cho uống nước sạch</button>
+                    <button id="btn-cmd-drink" onclick="commandCatEmote('drink')" class="w-full cozy-btn py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-black flex items-center justify-center gap-1 transition-all">💧 Cho uống nước sạch</button>
                 </div>
             </div>
         </div>
@@ -1974,6 +1987,7 @@
             leftPanelOpen: false,
             rightPanelOpen: false,
             hunger: 70,
+            water: 85,
             happiness: 85,
             cleanliness: 100,
             foodStock: 10,
@@ -1983,6 +1997,7 @@
             lastGrowthCheck: Date.now(),
             lastPetTime: 0,
             lastBrushTime: 0,
+            lastCommandTimes: {},
             wallStyle: 'stripes',
             floorStyle: 'oak',
             ownedDecor: ['food_station', 'litter_box', 'cat_tree', 'cat_wheel', 'cardboard_box', 'catnip_pot'],
@@ -1996,6 +2011,7 @@
                     name: 'Miu Cam',
                     breedId: 'ginger',
                     hunger: 65,
+                    water: 85,
                     happiness: 85,
                     love: 85,
                     level: 1,
@@ -2023,13 +2039,15 @@
                     state = Object.assign(state, parsed);
                     if (state.waterBowlPercent === undefined) state.waterBowlPercent = 100;
                     if (state.lampMode === undefined) state.lampMode = 'on';
+                    if (!state.lastCommandTimes) state.lastCommandTimes = {};
                     if (!state.decorPositions) state.decorPositions = Object.assign({}, DEFAULT_DECOR_POSITIONS);
                     if (!state.cats || state.cats.length === 0) {
-                        state.cats = [{ id: 'c1', name: 'Miu Cam', breedId: 'ginger', hunger: 65, happiness: 95, love: 85, level: 1, growthExp: 0, scale: 0.55, accessory: 'bell', favToy: 'tree' }];
+                        state.cats = [{ id: 'c1', name: 'Miu Cam', breedId: 'ginger', hunger: 65, water: 85, happiness: 95, love: 85, level: 1, growthExp: 0, scale: 0.55, accessory: 'bell', favToy: 'tree' }];
                     } else {
                         const toys = ['wheel', 'tree', 'box', 'donut', 'flip'];
                         state.cats.forEach(c => {
                             if (c.happiness === undefined || c.happiness === null) c.happiness = 95;
+                            if (c.water === undefined || c.water === null) c.water = 85;
                             if (!c.favToy) c.favToy = toys[Math.floor(Math.random() * toys.length)];
                         });
                     }
@@ -3369,7 +3387,7 @@
                         actor.bodyPivot.position.y = 0.52;
                         const cData = state.cats.find(c => c.id === actor.id);
                         if (cData) {
-                            cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 25);
+                            cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 1.5);
                             cData.boredom = 0;
                         }
                     }
@@ -3496,7 +3514,7 @@
                             const cData = state.cats.find(c => c.id === actor.id);
                             if (cData) {
                                 cData.hunger = Math.min(100, (cData.hunger || 70) + effDt * 7.5);
-                                cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 6);
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 1.0);
                                 cData.boredom = 0;
                             }
                         }
@@ -3537,8 +3555,9 @@
                             updateWaterBowlVisual();
                             const cData = state.cats.find(c => c.id === actor.id);
                             if (cData) {
-                                cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 7.0);
-                                cData.thirst = Math.max(0, (cData.thirst || 0) - effDt * 20);
+                                cData.water = Math.min(100, (cData.water !== undefined ? cData.water : 85) + effDt * 22);
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 1.0);
+                                cData.thirst = 0;
                             }
                         }
 
@@ -3546,98 +3565,95 @@
                         if (actor.stateTimer <= 0) {
                             actor.aiState = 'sit';
                             actor.stateTimer = 3.5;
-                            showFloatingNotification(`💧 ${actor.data.name} đã uống nước mát đã khát! (+Tâm trạng 💖)`, '#0284c7', '✨');
+                            showFloatingNotification(`💧 ${actor.data.name} đã uống nước mát đã khát! (+3% Tâm trạng 💖)`, '#0284c7', '✨');
+                            updateUI();
                         }
                     }
                     return;
                 }
 
-                // 4. AUTONOMOUS BEHAVIOR CYCLE: TỰ GIÁC ĐI CHƠI & UỐNG NƯỚC (THƯỜNG XUYÊN 15 - 35 GIÂY)
-                if (!actor.drinkTimer) actor.drinkTimer = 35 + Math.random() * 45;
+                // RUNNING WHEEL: HOẠT ĐỘNG CHẠY XE ĐỪNG QUÁ 10S
+                if (actor.aiState === 'running_wheel') {
+                    actor.stateTimer -= effDt;
+                    if (actor.stateTimer <= 0) {
+                        actor.aiState = 'sit';
+                        actor.stateTimer = 3.5;
+                        const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
+                        actor.mesh.position.set(wheelPos.x, FLOOR_Y + 0.03, wheelPos.z + 0.65);
+                        actor.mesh.rotation.y = 0;
+                        showFloatingNotification(`✨ ${actor.data.name} đã chạy bánh xe xong và nhảy xuống nghỉ ngơi! 🏃`, '#06b6d4', '🐾');
+                        updateUI();
+                    }
+                    return;
+                }
+
+                // 4. AUTONOMOUS DRINKING: CHỈ UỐNG NẾU KHÁT (NƯỚC DƯỚI 50%)
+                const cDataForWater = state.cats.find(c => c.id === actor.id);
+                const currentWater = cDataForWater ? (cDataForWater.water !== undefined ? cDataForWater.water : 85) : 85;
+                if (!actor.drinkTimer) actor.drinkTimer = 30 + Math.random() * 40;
                 actor.drinkTimer -= effDt;
-                if (actor.drinkTimer <= 0 && state.activeDecor.includes('food_station') &&
+                if (currentWater < 50 && actor.drinkTimer <= 0 && state.activeDecor.includes('food_station') &&
                     actor.aiState !== 'climbing' && actor.aiState !== 'running_wheel' &&
                     actor.aiState !== 'going_to_litter' && actor.aiState !== 'using_litter' &&
                     actor.aiState !== 'eating' && actor.aiState !== 'drinking' && actor.aiState !== 'going_to_drink') {
                     actor.aiState = 'going_to_drink';
                     actor.stateTimer = 6.0;
-                    actor.drinkTimer = 60 + Math.random() * 70;
+                    actor.drinkTimer = 60 + Math.random() * 60;
                 }
 
-                if (!actor.playTimer) actor.playTimer = 10 + Math.random() * 20;
+                // 4B. AUTONOMOUS PLAYING: CHỈ MUỐN CHƠI NẾU % TÂM TRẠNG DƯỚI 50%
+                if (!actor.playTimer) actor.playTimer = 15 + Math.random() * 20;
                 actor.playTimer -= effDt;
 
-                // TỰ ĐỘNG ĐI CHƠI THEO LỊCH SINH HOẠT VÀ TÍNH CÁCH RIÊNG CỦA TỪNG BÉ
-                if (actor.playTimer <= 0 && actor.aiState !== 'climbing' && actor.aiState !== 'running_wheel' && actor.aiState !== 'going_to_litter' && actor.aiState !== 'using_litter' && actor.aiState !== 'drinking' && actor.aiState !== 'going_to_drink') {
-                    // Reset thời gian đi chơi kế tiếp: 15 - 35s để căn phòng luôn nhộn nhịp, mèo chủ động chơi
-                    actor.playTimer = (18 + Math.random() * 25) / (actor.playfulness || 1.0);
+                const cData = state.cats.find(c => c.id === actor.id);
+                const currentMood = cData ? (cData.happiness !== undefined ? cData.happiness : 95) : 95;
 
-                    const cData = state.cats.find(c => c.id === actor.id);
+                // CHỈ TỰ GIÁC ĐI CHƠI NẾU % TÂM TRẠNG DƯỚI 50%
+                if (currentMood < 50 && actor.playTimer <= 0 && actor.aiState !== 'climbing' && actor.aiState !== 'running_wheel' && actor.aiState !== 'going_to_litter' && actor.aiState !== 'using_litter' && actor.aiState !== 'drinking' && actor.aiState !== 'going_to_drink' && actor.aiState !== 'eating') {
+                    actor.playTimer = (20 + Math.random() * 25) / (actor.playfulness || 1.0);
+
                     const hasWheel = state.activeDecor.includes('cat_wheel');
                     const hasTree = state.activeDecor.includes('cat_tree') && (!actor.lastClimbTime || (Date.now() - actor.lastClimbTime > 25000));
                     const hasBox = state.activeDecor.includes('cardboard_box');
                     const hasDonut = state.activeDecor.includes('donut_bed');
 
-                    // Chọn trò chơi ngẫu nhiên kết hợp sở thích riêng của từng bé
                     const availableToys = [];
                     if (hasWheel) availableToys.push('wheel');
                     if (hasTree) availableToys.push('tree');
                     if (hasBox) availableToys.push('box');
                     if (hasDonut) availableToys.push('donut');
-                    availableToys.push('flip'); // Nhào lộn xiếc
+                    availableToys.push('flip'); // Nhào lộn
 
                     if (availableToys.length > 0) {
-                        // 75% ƯU TIÊN SỞ THÍCH CỦA BÉ (TỰ CHƠI ĐÚNG MÓN BÉ THÍCH)
                         const favToy = (cData && cData.favToy) || actor.favToy || 'tree';
                         const pick = (availableToys.includes(favToy) && Math.random() < 0.75) 
                             ? favToy 
                             : availableToys[Math.floor(Math.random() * availableToys.length)];
 
                         const isFav = (pick === favToy);
-                        const moodBoost = isFav ? 35 : 25;
+                        const moodBoost = isFav ? 5 : (3 + Math.floor(Math.random() * 2)); // CHỈ +3-5%
                         const favTag = isFav ? ' (món bé thích nhất ⭐)' : '';
 
                         if (pick === 'wheel') {
                             selectedCatId = actor.id;
-                            commandCatEmote('wheel');
-                            if (cData) {
-                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
-                                cData.love = Math.min(100, (cData.love || 80) + 5);
-                                cData.boredom = 0;
-                            }
-                            showFloatingNotification(`✨ ${actor.data.name} tự giác chạy bánh xe tít mù${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#06b6d4', '🏃');
-                            updateUI();
+                            commandCatEmote('wheel', false, true);
                             return;
                         } else if (pick === 'tree') {
                             selectedCatId = actor.id;
-                            commandCatEmote('tree');
-                            if (cData) {
-                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
-                                cData.love = Math.min(100, (cData.love || 80) + 5);
-                                cData.boredom = 0;
-                            }
-                            showFloatingNotification(`🌳 ${actor.data.name} thích thú leo tháp mèo ngắm cảnh${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#8b5cf6', '🐾');
-                            updateUI();
+                            commandCatEmote('tree', false, true);
                             return;
                         } else if (pick === 'box') {
                             selectedCatId = actor.id;
-                            commandCatEmote('box');
-                            if (cData) {
-                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
-                                cData.love = Math.min(100, (cData.love || 80) + 4);
-                                cData.boredom = 0;
-                            }
-                            showFloatingNotification(`📦 ${actor.data.name} chui tọt vào hộp carton ấm cúng${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#f59e0b', '🐱');
-                            updateUI();
+                            commandCatEmote('box', false, true);
                             return;
                         } else if (pick === 'donut') {
                             const donutPos = state.decorPositions['donut_bed'] || DEFAULT_DECOR_POSITIONS.donut_bed;
                             actor.mesh.position.set(donutPos.x, FLOOR_Y + 0.08, donutPos.z);
                             actor.aiState = 'loaf';
-                            actor.stateTimer = 14 + Math.random() * 12;
+                            actor.stateTimer = 10 + Math.random() * 6;
                             if (cData) {
                                 cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
-                                cData.love = Math.min(100, (cData.love || 80) + 4);
+                                cData.love = Math.min(100, (cData.love || 80) + 1);
                                 cData.boredom = 0;
                             }
                             showFloatingNotification(`🍩 ${actor.data.name} cuộn tròn êm ái trên đệm donut${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#ec4899', '✨');
@@ -3645,23 +3661,18 @@
                             return;
                         } else if (pick === 'flip') {
                             selectedCatId = actor.id;
-                            commandCatEmote('flip');
-                            if (cData) {
-                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
-                                cData.boredom = 0;
-                            }
-                            showFloatingNotification(`🤸 ${actor.data.name} biểu diễn nhào lộn một vòng cực ngầu${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#ec4899', '🎉');
-                            updateUI();
+                            commandCatEmote('flip', false, true);
                             return;
                         }
                     }
                 }
 
-                // Sinh hoạt thường nhật tự nhiên (Đi dạo, ngồi ngắm cảnh, nằm phơi bụng, ngủ)
+                // CÒN LẠI HOẠT ĐỘNG DI CHUYỂN NẰM NGỦ BÌNH THƯỜNG
+                actor.stateTimer -= effDt;
                 if (actor.stateTimer <= 0) {
                     const r = Math.random();
-                    actor.aiState = r < 0.40 ? 'wander' : (r < 0.65 ? 'sit' : (r < 0.80 ? 'lie' : (r < 0.92 ? 'back' : 'loaf')));
-                    actor.stateTimer = actor.aiState === 'wander' ? 4 + Math.random() * 5 : 9 + Math.random() * 12;
+                    actor.aiState = r < 0.38 ? 'wander' : (r < 0.62 ? 'sit' : (r < 0.78 ? 'lie' : (r < 0.90 ? 'back' : 'loaf')));
+                    actor.stateTimer = actor.aiState === 'wander' ? 4 + Math.random() * 5 : 8 + Math.random() * 10;
                     actor.targetPos.set((Math.random() - 0.5) * 6.5, FLOOR_Y + 0.03, -0.4 + Math.random() * 2.6);
                 }
 
@@ -3726,6 +3737,13 @@
                 }
                 cat.hunger = Math.max(5, (cat.hunger || 70) - (elapsedSeconds * cat.hungerRate));
 
+                // GIẢM NƯỚC UỐNG MỖI 5 - 7 PHÚT (MÈO SẼ DẦN DẦN THẤY KHÁT NƯỚC)
+                if (!cat.thirstRate) {
+                    const waterCycleSec = 280 + Math.random() * 120; // 5 - 7 phút
+                    cat.thirstRate = 18 / waterCycleSec; // % giảm mỗi giây
+                }
+                cat.water = Math.max(5, (cat.water !== undefined ? cat.water : 85) - (elapsedSeconds * cat.thirstRate));
+
                 // Tâm trạng giảm tự nhiên rất chậm (chỉ giảm ~1% mỗi 50s nếu bỏ bê)
                 cat.happiness = Math.max(25, (cat.happiness !== undefined ? cat.happiness : 95) - (elapsedSeconds * 0.02));
                 cat.boredom = Math.min(100, Math.max(0, (cat.boredom !== undefined ? cat.boredom : 5) + (elapsedSeconds * 0.015)));
@@ -3733,9 +3751,11 @@
 
             state.cleanliness = Math.max(10, (state.cleanliness || 100) - (elapsedSeconds / 220));
             state.hunger = Math.round(state.cats.reduce((acc, c) => acc + (c.hunger || 70), 0) / state.cats.length);
+            state.water = Math.round(state.cats.reduce((acc, c) => acc + (c.water !== undefined ? c.water : 85), 0) / state.cats.length);
             state.happiness = Math.round(state.cats.reduce((acc, c) => acc + (c.happiness || 80), 0) / state.cats.length);
         }
 
+        let _lastBtnUIUpdate = 0;
         function animateLoop() {
             requestAnimationFrame(animateLoop);
             const dt = 0.016;
@@ -3744,15 +3764,135 @@
             animateCatParts(dt, performance.now() / 1000);
             animateStreetTraffic(dt);
             processSpontaneousCatMeowing();
+            const now = performance.now();
+            if (now - _lastBtnUIUpdate > 200) {
+                _lastBtnUIUpdate = now;
+                updateCommandButtonsUI();
+            }
             renderer.render(scene, camera);
         }
 
         /********************************************************************
-         * 9. CAT EMOTE COMMANDS (ON COMMAND ANIMATIONS)
+         * 9. CAT EMOTE COMMANDS (ON COMMAND ANIMATIONS WITH COOLDOWNS)
          ********************************************************************/
-        function commandCatEmote(cmd, fromRemote = false) {
+        const COMMAND_COOLDOWNS = {
+            sleep: 8000,
+            wheel: 10000,
+            tree: 8000,
+            box: 8000,
+            flip: 5000,
+            come: 4000,
+            drink: 8000
+        };
+
+        const CMD_DEFAULT_LABELS = {
+            sleep: '😴 Đi ngủ',
+            wheel: '🏃 Bánh xe',
+            tree: '🌳 Leo tháp',
+            box: '📦 Chui hộp',
+            flip: '🤸 Nhào lộn',
+            come: '🐾 Lại đây',
+            drink: '💧 Cho uống nước sạch'
+        };
+
+        function updateCommandButtonsUI() {
+            if (!state.lastCommandTimes) state.lastCommandTimes = {};
+            const now = Date.now();
+            let anyInCooldown = false;
+
+            for (const cmd in COMMAND_COOLDOWNS) {
+                const btn = document.getElementById(`btn-cmd-${cmd}`);
+                if (!btn) continue;
+                const cd = COMMAND_COOLDOWNS[cmd];
+                const last = state.lastCommandTimes[cmd] || 0;
+                const elapsed = now - last;
+                if (elapsed < cd) {
+                    anyInCooldown = true;
+                    const remain = Math.ceil((cd - elapsed) / 1000);
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.textContent = `${CMD_DEFAULT_LABELS[cmd]} (${remain}s)`;
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.textContent = CMD_DEFAULT_LABELS[cmd];
+                }
+            }
+
+            // Also update care buttons: Vuốt (3s) and Chải (10s)
+            const petBtn = document.getElementById('btn-pet-action');
+            if (petBtn) {
+                const petElapsed = now - (state.lastPetTime || 0);
+                if (petElapsed < 3000) {
+                    const remain = Math.ceil((3000 - petElapsed) / 1000);
+                    petBtn.disabled = true;
+                    petBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    petBtn.textContent = `👋 Vuốt (${remain}s)`;
+                } else {
+                    petBtn.disabled = false;
+                    petBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    petBtn.textContent = '👋 Vuốt';
+                }
+            }
+
+            const brushBtn = document.getElementById('btn-brush-action');
+            if (brushBtn) {
+                const brushElapsed = now - (state.lastBrushTime || 0);
+                if (brushElapsed < 10000) {
+                    const remain = Math.ceil((10000 - brushElapsed) / 1000);
+                    brushBtn.disabled = true;
+                    brushBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    brushBtn.textContent = `🪮 Chải (${remain}s)`;
+                } else {
+                    brushBtn.disabled = false;
+                    brushBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    brushBtn.textContent = '🪮 Chải';
+                }
+            }
+
+            const hintEl = document.getElementById('cmd-cooldown-hint');
+            if (hintEl) {
+                hintEl.classList.toggle('hidden', !anyInCooldown);
+            }
+        }
+
+        function commandCatEmote(cmd, fromRemote = false, isAutonomous = false) {
             const actor = catActors.find(a => a.id === selectedCatId) || catActors[0];
             if (!actor) return;
+
+            const cData = state.cats.find(c => c.id === actor.id);
+
+            // CHỈ UỐNG NẾU KHÁT: KIỂM TRA MỨC NƯỚC KHI BẤM NÚT UỐNG NƯỚC
+            if (cmd === 'drink') {
+                const currentWater = cData ? (cData.water !== undefined ? cData.water : 85) : 85;
+                if (currentWater >= 60) {
+                    showFloatingNotification(`💧 ${actor.data.name} hiện chưa khát nước! (${Math.round(currentWater)}% nước)`, '#0284c7', '🐱');
+                    return;
+                }
+            }
+
+            // KIỂM TRA THỜI GIAN CHỜ VÀ CHỐNG SPAM (COOLDOWN)
+            if (!fromRemote && !isAutonomous) {
+                if (!state.lastCommandTimes) state.lastCommandTimes = {};
+                const now = Date.now();
+                const cd = COMMAND_COOLDOWNS[cmd] || 6000;
+                const last = state.lastCommandTimes[cmd] || 0;
+                if (now - last < cd) {
+                    const remain = Math.ceil((cd - (now - last)) / 1000);
+                    showFloatingNotification(`⏳ Lệnh đang chờ hồi chiêu! Đợi ${remain}s nữa nhé`, '#f59e0b', '⏳');
+                    return;
+                }
+
+                // Nếu đang bận các hành động đặc biệt chưa xong thì không cho bấm đè
+                if (actor.aiState === 'running_wheel' || actor.aiState === 'climbing' || actor.flipData || actor.jumpData) {
+                    showFloatingNotification(`🐱 ${actor.data.name} đang bận làm hành động, đợi bé xong nhé!`, '#f59e0b', '⏳');
+                    return;
+                }
+
+                state.lastCommandTimes[cmd] = now;
+                updateCommandButtonsUI();
+            }
+
             if (!fromRemote) {
                 publishRealtimePacket({ type: 'cat_emote', catId: actor.id, cmd: cmd });
             }
@@ -3761,13 +3901,13 @@
             const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
             const boxPos = state.decorPositions['cardboard_box'] || DEFAULT_DECOR_POSITIONS.cardboard_box;
 
-            const cData = state.cats.find(c => c.id === actor.id);
             const favKey = actor.favToy || (cData ? cData.favToy : '');
             const isFav = (cmd === favKey);
-            const boost = isFav ? 35 : 20;
+            // CÁC HOẠT ĐỘNG CHỈ CỘNG +3-5% ĐIỂM HẠNH PHÚC
+            const boost = isFav ? 5 : (3 + Math.floor(Math.random() * 2));
             if (cData) {
                 cData.happiness = Math.min(100, (cData.happiness || 80) + boost);
-                cData.love = Math.min(100, (cData.love || 85) + 3);
+                cData.love = Math.min(100, (cData.love || 85) + 1);
                 cData.boredom = 0;
                 state.happiness = Math.round(state.cats.reduce((acc, c) => acc + (c.happiness || 80), 0) / state.cats.length);
                 updateUI();
@@ -3775,12 +3915,12 @@
 
             if (cmd === 'sleep') {
                 actor.aiState = Math.random() < 0.5 ? 'back' : 'lie';
-                actor.stateTimer = 15;
+                actor.stateTimer = 8;
                 playMeowSound(0.9);
                 showFloatingNotification(`😴 ${actor.data.name} đã nằm lăn ra ngủ phơi bụng rừ rừ! (+${boost}% Tâm trạng 💖)`, '#6366f1', '💤');
             } else if (cmd === 'wheel') {
                 actor.aiState = 'running_wheel';
-                actor.stateTimer = 10;
+                actor.stateTimer = 8.0; // HOẠT ĐỘNG CHẠY XE ĐỪNG QUÁ 10S (8 GIÂY)
                 playMeowSound(1.1);
                 showFloatingNotification(`🏃 ${actor.data.name} đang chạy bánh xe tập thể dục tít mù${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#06b6d4', '✨');
             } else if (cmd === 'tree') {
@@ -3790,7 +3930,7 @@
             } else if (cmd === 'box') {
                 actor.aiState = 'loaf';
                 actor.mesh.position.set(boxPos.x, FLOOR_Y + 0.12, boxPos.z);
-                actor.stateTimer = 12;
+                actor.stateTimer = 8;
                 playMeowSound(1.15);
                 showFloatingNotification(`📦 ${actor.data.name} đã chui tọt vào hộp carton ấm áp${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#f59e0b', '🐱');
             } else if (cmd === 'flip') {
@@ -3811,11 +3951,12 @@
             } else if (cmd === 'come') {
                 actor.targetPos.set(0, FLOOR_Y + 0.03, 0.8);
                 actor.aiState = 'wander';
+                actor.stateTimer = 4.0;
                 playMeowSound(1.3);
                 showFloatingNotification(`🐾 ${actor.data.name} đang chạy lại quấn chân bạn nè! (+${boost}% Tâm trạng 💖)`, '#10b981', '💕');
             } else if (cmd === 'drink') {
                 actor.aiState = 'going_to_drink';
-                actor.stateTimer = 15;
+                actor.stateTimer = 6.0;
                 showFloatingNotification(`💧 ${actor.data.name} đang chạy lại máng uống nước mát lành! (+${boost}% Tâm trạng 💖)`, '#0284c7', '✨');
             }
         }
@@ -4145,9 +4286,9 @@
                 const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
 
                 if (Math.hypot(pos.x - treePos.x, pos.z - treePos.z) < 1.1) {
-                    commandCatEmote('tree');
+                    commandCatEmote('tree', false, true);
                 } else if (Math.hypot(pos.x - wheelPos.x, pos.z - wheelPos.z) < 1.0) {
-                    commandCatEmote('wheel');
+                    commandCatEmote('wheel', false, true);
                 } else {
                     if (typeof playCatVoice === 'function') playCatVoice(actor, 'greet');
                     showFloatingNotification(`Đã đặt bé ${actor.data.name} xuống sàn an toàn! 🐾`, '#10b981', '💖');
@@ -4310,15 +4451,16 @@
             if (!cat) return;
             state.stats.pettedToday++;
             state.coins += 2; // Tiny reward to prevent coin spam
-            cat.love = Math.min(100, (cat.love || 85) + 5);
-            cat.happiness = Math.min(100, (cat.happiness || 80) + 15);
+            const petBoost = 3;
+            cat.love = Math.min(100, (cat.love || 85) + 3);
+            cat.happiness = Math.min(100, (cat.happiness || 80) + petBoost);
             cat.boredom = 0;
             state.happiness = Math.round(state.cats.reduce((acc, c) => acc + (c.happiness || 80), 0) / state.cats.length);
 
             const petActor = catActors.find(a => a.id === cat.id);
             if (petActor) playCatVoice(petActor, "purr");
             else playPurrSound();
-            showFloatingNotification(`👋 ${currentUser} vừa vuốt ve ${cat.name}! Bé rừ rừ thích thú (+15% Tâm trạng 💕, +2🪙)`, '#ec4899', '💖');
+            showFloatingNotification(`👋 ${currentUser} vừa vuốt ve ${cat.name}! Bé rừ rừ thích thú (+${petBoost}% Tâm trạng 💕, +2🪙)`, '#ec4899', '💖');
             updateUI();
             pushStateToCloud();
         }
@@ -4336,8 +4478,9 @@
             if (!targetCat) return;
 
             playPurrSound();
-            targetCat.happiness = Math.min(100, (targetCat.happiness || 80) + 25);
-            targetCat.love = Math.min(100, (targetCat.love || 85) + 8);
+            const brushBoost = 5;
+            targetCat.happiness = Math.min(100, (targetCat.happiness || 80) + brushBoost);
+            targetCat.love = Math.min(100, (targetCat.love || 85) + 4);
             targetCat.boredom = 0;
             state.happiness = Math.round(state.cats.reduce((acc, c) => acc + (c.happiness || 80), 0) / state.cats.length);
             state.stats.brushedToday++;
@@ -4346,7 +4489,7 @@
             const actor = catActors.find(a => a.id === targetCat.id);
             if (actor) { actor.aiState = 'lie'; actor.stateTimer = 5; }
 
-            showFloatingNotification(`🪮 ${currentUser} đã chải lông cho ${targetCat.name}! Bé sung sướng (+25% Tâm trạng 💕, +10🪙)`, '#ec4899', '💖');
+            showFloatingNotification(`🪮 ${currentUser} đã chải lông cho ${targetCat.name}! Bé sung sướng (+${brushBoost}% Tâm trạng 💕, +10🪙)`, '#ec4899', '💖');
             updateUI();
             pushStateToCloud();
         }
@@ -4562,6 +4705,31 @@
             document.getElementById('insp-love').textContent = Math.round(cat.love || 85) + '% 💕';
             document.getElementById('insp-hat').textContent = (CAT_ACCESSORIES.find(a => a.id === cat.accessory) || { name: 'Chuông Vàng' }).name;
 
+            // Cập nhật thanh Nước uống (Chỉ uống nếu khát)
+            const catWater = Math.round(cat.water !== undefined ? cat.water : 85);
+            const waterTxtEl = document.getElementById('insp-water-txt');
+            const waterBarEl = document.getElementById('insp-water-bar');
+            if (waterTxtEl) {
+                let waterLabel = 'Đủ nước';
+                let waterColor = 'text-sky-600';
+                let waterGrad = 'from-sky-400 to-blue-500';
+                if (catWater < 40) {
+                    waterLabel = 'Đang rất khát! ⚠️';
+                    waterColor = 'text-rose-600';
+                    waterGrad = 'from-rose-400 to-amber-500';
+                } else if (catWater < 60) {
+                    waterLabel = 'Hơi khát';
+                    waterColor = 'text-amber-600';
+                    waterGrad = 'from-amber-400 to-sky-400';
+                }
+                waterTxtEl.textContent = `${waterLabel} (${catWater}%)`;
+                waterTxtEl.className = `${waterColor} font-black`;
+                if (waterBarEl) {
+                    waterBarEl.style.width = Math.min(100, Math.max(0, catWater)) + '%';
+                    waterBarEl.className = `stat-bar-fill bg-gradient-to-r ${waterGrad}`;
+                }
+            }
+
             // Cập nhật thanh Tâm trạng & Sở thích đồ chơi
             const mood = Math.round(cat.happiness !== undefined ? cat.happiness : 95);
             let moodLabel = 'Cực kỳ phấn khích 🤩';
@@ -4601,7 +4769,26 @@
             if (!cat.favToy) cat.favToy = favToyKey;
             const favToyDesc = (typeof TOY_NAMES !== 'undefined' && TOY_NAMES[favToyKey]) ? TOY_NAMES[favToyKey] : 'Leo tháp mèo 🌳';
             const favToyEl = document.getElementById('insp-fav-toy');
-            if (favToyEl) favToyEl.textContent = favToyDesc;
+            const playTagEl = document.getElementById('insp-play-tag');
+            if (favToyEl) {
+                // CHỈ MUỐN CHƠI NẾU % TÂM TRẠNG DƯỚI 50%
+                if (mood < 50) {
+                    favToyEl.textContent = favToyDesc;
+                    favToyEl.className = 'text-purple-600 font-black';
+                    if (playTagEl) {
+                        playTagEl.textContent = '✨ Muốn đi chơi';
+                        playTagEl.className = 'text-purple-700 font-extrabold text-[9.5px] bg-purple-100/90 px-1.5 py-0.5 rounded-md border border-purple-300';
+                    }
+                } else {
+                    favToyEl.textContent = 'Thích nghỉ ngơi 💤';
+                    favToyEl.className = 'text-slate-500 font-extrabold';
+                    if (playTagEl) {
+                        playTagEl.textContent = '🌿 Đang thư giãn';
+                        playTagEl.className = 'text-emerald-700 font-extrabold text-[9.5px] bg-emerald-100/90 px-1.5 py-0.5 rounded-md border border-emerald-300';
+                    }
+                }
+            }
+            updateCommandButtonsUI();
 
             const nextExp = 100 - Math.round(cat.growthExp || 0);
             const isFull = (cat.hunger || 0) >= 60 && (cat.love || 0) >= 60;
