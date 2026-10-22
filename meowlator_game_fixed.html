@@ -296,6 +296,12 @@
             <button onclick="openSettingsModal()" class="cozy-pill px-3 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm font-black bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-sm whitespace-nowrap" title="Cài đặt âm thanh & trò chơi">
                 <span>⚙️</span><span>Cài đặt</span>
             </button>
+
+            <!-- Light Switch Toggle Button (Bật / Tắt đèn phòng) -->
+            <button onclick="toggleRoomLight()" id="btn-toggle-light" class="cozy-pill px-3 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm font-black bg-amber-100 hover:bg-amber-200 text-amber-900 shadow-sm transition-all" title="Bật / Tắt đèn trần phòng mèo">
+                <span id="light-switch-icon" class="text-sm sm:text-base">💡</span>
+                <span id="light-switch-text" class="hidden sm:inline">Tắt đèn</span>
+            </button>
         </div>
 
         <!-- Right Side: Coins & HUD Toggle -->
@@ -432,17 +438,18 @@
                 <div class="flex justify-between items-center">
                     <span>💕 Thân thiết:</span><span id="insp-love" class="text-rose-500 font-extrabold">85%</span>
                 </div>
-                <!-- THANH TÂM TRẠNG & BUỒN CHÁN -->
+                <!-- THANH TÂM TRẠNG & SỞ THÍCH -->
                 <div>
                     <div class="flex justify-between items-center mb-0.5">
-                        <span>🎭 Tâm trạng / Chán:</span>
-                        <span id="insp-boredom-txt" class="text-amber-700 font-black">Vui vẻ (20%)</span>
+                        <span>🎭 Tâm trạng:</span>
+                        <span id="insp-mood-txt" class="text-emerald-600 font-black">Hạnh phúc (95%)</span>
                     </div>
-                    <div class="stat-bar-track h-2 bg-slate-200">
-                        <div id="insp-boredom-bar" class="stat-bar-fill bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-400" style="width: 20%"></div>
+                    <div class="stat-bar-track h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div id="insp-mood-bar" class="stat-bar-fill bg-gradient-to-r from-emerald-400 to-teal-500" style="width: 95%"></div>
                     </div>
-                    <div class="text-[10px] font-bold text-slate-500 mt-0.5">
-                        (Mèo chỉ tự chơi trò chơi khi buồn chán > 55%)
+                    <div class="text-[10.5px] font-bold text-slate-600 mt-1 flex items-center justify-between">
+                        <span>💭 Muốn chơi: <strong id="insp-fav-toy" class="text-purple-600 font-black">Leo tháp mèo 🌳</strong></span>
+                        <span class="text-emerald-700 font-extrabold text-[9.5px] bg-emerald-100/90 px-1.5 py-0.5 rounded-md border border-emerald-300">✨ Tự động đi chơi</span>
                     </div>
                 </div>
                 <div class="flex justify-between items-center pt-1 border-t border-slate-200">
@@ -468,6 +475,9 @@
                     <button onclick="commandCatEmote('box')" class="cozy-btn py-1 bg-orange-50 hover:bg-orange-100">📦 Chui hộp</button>
                     <button onclick="commandCatEmote('flip')" class="cozy-btn py-1 bg-pink-50 hover:bg-pink-100">🤸 Nhào lộn</button>
                     <button onclick="commandCatEmote('come')" class="cozy-btn py-1 bg-emerald-50 hover:bg-emerald-100">🐾 Lại đây</button>
+                </div>
+                <div class="mt-1">
+                    <button onclick="commandCatEmote('drink')" class="w-full cozy-btn py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-black flex items-center justify-center gap-1">💧 Cho uống nước sạch</button>
                 </div>
             </div>
         </div>
@@ -688,13 +698,28 @@
             <div class="py-3 space-y-2.5 max-h-[60vh] overflow-y-auto cozy-scroll">
                 <div class="p-2.5 bg-amber-50 rounded-2xl border-2 border-slate-900 flex items-center justify-between">
                     <div>
-                        <div class="font-black text-[10px] text-slate-500 uppercase">Máy ăn tự động 2-in-1</div>
-                        <div id="bowl-status-txt" class="font-black text-xs sm:text-sm text-amber-800">Thức ăn: 0% • Nước sạch: 100%</div>
+                        <div class="font-black text-[10px] text-slate-500 uppercase">Máy ăn uống tự động 2-in-1</div>
+                        <div id="bowl-status-txt" class="font-black text-xs sm:text-sm text-amber-800">Thức ăn: 100% • Nước sạch: 100%</div>
                     </div>
                     <div class="text-2xl">🍲</div>
                 </div>
 
-                <div class="text-[11px] font-extrabold text-slate-500 uppercase">Quy định: Mèo chỉ ăn khi đói dưới 75%!</div>
+                <!-- Bình nước sạch -->
+                <div class="p-2.5 bg-sky-50 rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">💧</span>
+                        <div>
+                            <div class="font-black text-xs text-sky-950">Bình Nước Khoáng Mát Lành</div>
+                            <div class="text-[10px] font-bold text-sky-700">Rót đầy khay cho các bé mèo uống đã khát (Miễn phí)</div>
+                        </div>
+                    </div>
+                    <button onclick="refillWaterBowl()" class="cozy-btn px-3 py-1.5 text-xs font-black bg-sky-400 hover:bg-sky-500 text-white shrink-0 shadow-sm">Rót nước 💧</button>
+                </div>
+
+                <div class="text-[11px] font-extrabold text-amber-800 bg-amber-100/70 px-3 py-1.5 rounded-xl border border-amber-300 flex items-center justify-between">
+                    <span>🍲 Khay thức ăn lớn: Đủ cho 3 bé ăn no nê!</span>
+                    <span class="text-[10px] text-slate-600 font-bold">Đổ đầy khay bất cứ lúc nào</span>
+                </div>
 
                 <!-- 1. Hạt khô & thịt sấy -->
                 <div class="p-2.5 bg-white rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-2">
@@ -1192,6 +1217,47 @@
             });
         }
 
+        function playWaterPourSound() {
+            initAudio(); if (!audioCtx || (state.settings && state.settings.muted)) return;
+            const now = audioCtx.currentTime;
+            for (let i = 0; i < 6; i++) {
+                const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(650 + Math.random() * 800, now + i * 0.05);
+                osc.frequency.exponentialRampToValueAtTime(320 + Math.random() * 180, now + i * 0.05 + 0.1);
+                gain.gain.setValueAtTime(0.08, now + i * 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.1);
+                osc.connect(gain); gain.connect(sfxGain);
+                osc.start(now + i * 0.05); osc.stop(now + i * 0.05 + 0.1);
+            }
+        }
+
+        function playWaterLapSound() {
+            initAudio(); if (!audioCtx || (state.settings && state.settings.muted)) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(950, now);
+            osc.frequency.exponentialRampToValueAtTime(450, now + 0.07);
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+            osc.connect(gain); gain.connect(sfxGain);
+            osc.start(now); osc.stop(now + 0.07);
+        }
+
+        function playLightSwitchSound() {
+            initAudio(); if (!audioCtx || (state.settings && state.settings.muted)) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(350, now);
+            osc.frequency.exponentialRampToValueAtTime(120, now + 0.04);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain); gain.connect(sfxGain);
+            osc.start(now); osc.stop(now + 0.05);
+        }
+
         /********************************************************************
          * 2. REAL-TIME CLOCK & HCM WEATHER (STREET LAMPS 18H-6H)
          ********************************************************************/
@@ -1249,33 +1315,53 @@
             const isNight = timeOfDay === 'night';
             const isDawnOrSunset = (timeOfDay === 'dawn' || timeOfDay === 'sunset');
 
+            // 1. Ánh sáng tự nhiên bên ngoài (Ảnh hưởng trực tiếp từ giờ giấc và thời tiết ngoài cửa sổ)
             if (isNight) {
                 scene.background.set(0x0b1226);
                 street.skyMat.map = street.skyNight;
-                if (window.__amb) window.__amb.intensity = 0.32;
                 if (window.__sun) {
-                    window.__sun.intensity = 0.18;
+                    window.__sun.intensity = 0.22; // Ánh trăng dịu mát chiếu qua cửa sổ
                     window.__sun.color.setHex(0xa5b4fc);
                 }
             } else if (isDawnOrSunset) {
                 scene.background.set(0xfb7185);
                 street.skyMat.map = street.skySunset || street.skyDay;
-                if (window.__amb) window.__amb.intensity = 0.55;
                 if (window.__sun) {
-                    window.__sun.intensity = 0.75;
+                    window.__sun.intensity = 0.75; // Ánh hoàng hôn ấm rực rỡ
                     window.__sun.color.setHex(0xfda4af);
                 }
             } else {
                 scene.background.set(0xfcefe3);
                 street.skyMat.map = street.skyDay;
-                if (window.__amb) window.__amb.intensity = 0.65;
                 if (window.__sun) {
-                    window.__sun.intensity = 0.85;
+                    window.__sun.intensity = 0.85; // Nắng ban ngày chiếu sáng bừng phòng
                     window.__sun.color.setHex(0xffedd5);
                 }
             }
 
-            // Street lamps active strictly between 18:00 and 06:00
+            // 2. Công tắc đèn phòng (ảnh hưởng đèn trần và bóng đèn)
+            const isLightOn = (state && state.lampMode !== 'off');
+            if (window.__roomLight) {
+                window.__roomLight.intensity = isLightOn ? (isNight ? 1.15 : 0.8) : 0;
+            }
+            if (window.__roomBulbMat) {
+                window.__roomBulbMat.emissiveIntensity = isLightOn ? 2.8 : 0.05;
+            }
+
+            // 3. Ánh sáng môi trường (Ambient): Luôn kết hợp ánh sáng ngoài trời + đèn trong phòng
+            if (window.__amb) {
+                if (isLightOn) {
+                    // Khi bật đèn: phòng luôn ấm áp, sáng sủa
+                    window.__amb.intensity = isNight ? 0.45 : (isDawnOrSunset ? 0.58 : 0.68);
+                    window.__amb.color.setHex(0xfff5e6);
+                } else {
+                    // Khi tắt đèn: phòng chìm trong ánh sáng tự nhiên từ cửa sổ (đêm thì tối lãng mạn, ngày thì sáng tự nhiên)
+                    window.__amb.intensity = isNight ? 0.12 : (isDawnOrSunset ? 0.32 : 0.42);
+                    window.__amb.color.setHex(isNight ? 0x93c5fd : (isDawnOrSunset ? 0xfecdd3 : 0xffedd5));
+                }
+            }
+
+            // Đèn đường bên ngoài: tự động bật từ 18:00 đến 06:00
             street.glow.forEach(item => {
                 if (item.bulb) {
                     item.bulb.material.emissiveIntensity = realTimeData.streetLampsOn ? 2.8 : 0.05;
@@ -1288,6 +1374,38 @@
             });
 
             street.skyMat.needsUpdate = true;
+            updateLightSwitchUI();
+        }
+
+        function toggleRoomLight() {
+            initAudio();
+            state.lampMode = (state.lampMode === 'off') ? 'on' : 'off';
+            playLightSwitchSound();
+            applySkyAndLighting(realTimeData.timeOfDay);
+            updateLightSwitchUI();
+            showFloatingNotification(state.lampMode === 'on' ? '💡 Đã bật đèn phòng ấm áp!' : '🌙 Đã tắt đèn phòng, ánh sáng êm dịu...', '#f59e0b', '💡');
+            saveGameState();
+            publishRealtimePacket({ type: 'lamp_toggle', lampMode: state.lampMode });
+            pushStateToCloud();
+        }
+
+        function updateLightSwitchUI() {
+            const btn = document.getElementById('btn-toggle-light');
+            const icon = document.getElementById('light-switch-icon');
+            const text = document.getElementById('light-switch-text');
+            if (!btn || !icon || !text) return;
+            const isOn = (state && state.lampMode !== 'off');
+            if (isOn) {
+                icon.textContent = '💡';
+                text.textContent = 'Tắt đèn';
+                btn.className = 'cozy-pill px-3 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm font-black bg-amber-100 hover:bg-amber-200 text-amber-900 shadow-sm transition-all';
+                btn.title = 'Đèn phòng đang BẬT. Bấm để tắt đèn';
+            } else {
+                icon.textContent = '🌙';
+                text.textContent = 'Bật đèn';
+                btn.className = 'cozy-pill px-3 py-1.5 flex items-center gap-1.5 text-xs sm:text-sm font-black bg-slate-800 hover:bg-slate-700 text-amber-200 border-2 border-amber-300/40 shadow-sm transition-all';
+                btn.title = 'Đèn phòng đang TẮT. Bấm để bật đèn';
+            }
         }
 
         /********************************************************************
@@ -1594,6 +1712,14 @@
                 commandCatEmote(packet.cmd, true);
                 return;
             }
+
+            // Đồng bộ khi người kia bật/tắt đèn phòng
+            if (packet.type === 'lamp_toggle') {
+                state.lampMode = packet.lampMode;
+                applySkyAndLighting(realTimeData.timeOfDay);
+                updateLightSwitchUI();
+                return;
+            }
         }
 
         // 5. Đẩy toàn bộ State lên MQTT (Retained) + Cloud KV Storage
@@ -1786,6 +1912,16 @@
             { id: 'beret', name: 'Mũ Nồi Họa Sĩ 🎨' }
         ];
 
+        const TOY_NAMES = {
+            'wheel': 'Chạy bánh xe 🏃',
+            'tree': 'Leo tháp mèo 🌳',
+            'box': 'Chui hộp carton 📦',
+            'donut': 'Nằm đệm donut 🍩',
+            'flip': 'Xiếc nhào lộn 🤸',
+            'sleep': 'Đi ngủ phơi bụng 😴',
+            'come': 'Lại gần vuốt ve 🐾'
+        };
+
         const DECOR_CATALOG = [
             { id: 'food_station', name: 'Máy Ăn & Uống 2-in-1 🥫💧', price: 100, type: 'station', score: 25, desc: 'Máy cấp hạt và bình nước tự động trắng-xám' },
             { id: 'litter_box', name: 'Chậu Cát Xám Viền Cao 🧹', price: 120, type: 'station', score: 22, desc: 'Chậu 2 màu xám-kem, có thành chắn bắn cát và lưới lọc' },
@@ -1841,7 +1977,8 @@
             happiness: 85,
             cleanliness: 100,
             foodStock: 10,
-            foodBowlPercent: 0,
+            foodBowlPercent: 100,
+            waterBowlPercent: 100,
             litterCleanliness: 100,
             lastGrowthCheck: Date.now(),
             lastPetTime: 0,
@@ -1884,9 +2021,17 @@
                 try {
                     const parsed = JSON.parse(saved);
                     state = Object.assign(state, parsed);
+                    if (state.waterBowlPercent === undefined) state.waterBowlPercent = 100;
+                    if (state.lampMode === undefined) state.lampMode = 'on';
                     if (!state.decorPositions) state.decorPositions = Object.assign({}, DEFAULT_DECOR_POSITIONS);
                     if (!state.cats || state.cats.length === 0) {
-                        state.cats = [{ id: 'c1', name: 'Miu Cam', breedId: 'ginger', hunger: 65, happiness: 85, love: 85, level: 1, growthExp: 0, scale: 0.55, accessory: 'bell' }];
+                        state.cats = [{ id: 'c1', name: 'Miu Cam', breedId: 'ginger', hunger: 65, happiness: 95, love: 85, level: 1, growthExp: 0, scale: 0.55, accessory: 'bell', favToy: 'tree' }];
+                    } else {
+                        const toys = ['wheel', 'tree', 'box', 'donut', 'flip'];
+                        state.cats.forEach(c => {
+                            if (c.happiness === undefined || c.happiness === null) c.happiness = 95;
+                            if (!c.favToy) c.favToy = toys[Math.floor(Math.random() * toys.length)];
+                        });
                     }
                 } catch (e) {
                     console.error('Save state parse error', e);
@@ -1968,9 +2113,27 @@
         let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 2.6);
 
         let foodBowlKibbleMesh = null;
+        let waterBowlMeshRef = null;
+        let roomCeilingLight = null;
+        let roomBulbMesh = null;
+        let roomBulbMat = null;
+        let localLaserMesh = null;
         let litterBoxDirtGroup = null;
         let catWheelDrum = null;
         let streetVehicles = [];
+
+        function ensureLocalLaserMesh() {
+            if (localLaserMesh) {
+                if (roomGroup && localLaserMesh.parent !== roomGroup) roomGroup.add(localLaserMesh);
+                return;
+            }
+            if (!roomGroup) return;
+            const geo = new THREE.SphereGeometry(0.08, 12, 12);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
+            localLaserMesh = new THREE.Mesh(geo, mat);
+            localLaserMesh.visible = false;
+            roomGroup.add(localLaserMesh);
+        }
 
         let laserActive = false;
         let laserTarget3D = new THREE.Vector3(0, 0, 0);
@@ -2243,6 +2406,43 @@
                 }
             });
 
+            // Modern Scandinavian Ceiling Lamp Fixture (Interactive Light Switch)
+            const ceilingLamp = new THREE.Group();
+            ceilingLamp.position.set(0, F + BOX_H - 0.02, 0);
+
+            const lampMountMat = catMat(0x374151, 0.5);
+            const lampMount = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.04, 16), lampMountMat);
+            ceilingLamp.add(lampMount);
+
+            const lampCord = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.72, 8), lampMountMat);
+            lampCord.position.y = -0.36;
+            ceilingLamp.add(lampCord);
+
+            const shadeMat = catMat(0xfff7ed, 0.35);
+            const lampShade = new THREE.Mesh(new THREE.ConeGeometry(0.48, 0.32, 24, 1, true), shadeMat);
+            lampShade.rotation.x = Math.PI;
+            lampShade.position.y = -0.76;
+            lampShade.userData.isLightSwitch = true;
+            ceilingLamp.add(lampShade);
+
+            roomBulbMat = new THREE.MeshStandardMaterial({
+                color: 0xffedd5,
+                emissive: 0xffd978,
+                emissiveIntensity: (state && state.lampMode !== 'off') ? 2.8 : 0.05
+            });
+            roomBulbMesh = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), roomBulbMat);
+            roomBulbMesh.position.y = -0.72;
+            roomBulbMesh.userData.isLightSwitch = true;
+            ceilingLamp.add(roomBulbMesh);
+
+            roomCeilingLight = new THREE.PointLight(0xffecd1, (state && state.lampMode !== 'off') ? 1.05 : 0.0, 16, 1.3);
+            roomCeilingLight.position.y = -0.75;
+            ceilingLamp.add(roomCeilingLight);
+            window.__roomLight = roomCeilingLight;
+            window.__roomBulbMat = roomBulbMat;
+
+            shell.add(ceilingLamp);
+
             roomGroup.add(shell);
         }
 
@@ -2469,29 +2669,31 @@
 
                 // Water dish
                 put(new THREE.BoxGeometry(0.32, 0.05, 0.22), slateGrey, -0.26, F + 0.08, 0.18);
-                put(new THREE.BoxGeometry(0.28, 0.03, 0.18), waterInside, -0.26, F + 0.1, 0.18);
+                const waterDishMesh = put(new THREE.BoxGeometry(0.28, 0.03, 0.18), waterInside, -0.26, F + 0.1, 0.18);
+                waterBowlMeshRef = waterDishMesh;
 
                 // Food tower
                 put(new THREE.BoxGeometry(0.38, 0.68, 0.36), whiteBody, 0.26, F + 0.42, -0.06);
                 put(new THREE.BoxGeometry(0.40, 0.05, 0.38), slateGrey, 0.26, F + 0.78, -0.06);
                 put(new THREE.BoxGeometry(0.22, 0.14, 0.12), whiteBody, 0.26, F + 0.15, 0.12);
 
-                // Food bowl
-                put(new THREE.CylinderGeometry(0.20, 0.18, 0.08, 24), whiteBody, 0.26, F + 0.08, 0.18);
+                // Food bowl (Larger capacity: enough for 3 cats to be full)
+                put(new THREE.CylinderGeometry(0.22, 0.19, 0.09, 24), whiteBody, 0.26, F + 0.08, 0.18);
 
                 const foodGroup = new THREE.Group();
                 foodGroup.position.set(0.26, F + 0.1, 0.18);
-                for (let i = 0; i < 18; i++) {
+                for (let i = 0; i < 36; i++) {
                     const ang = Math.random() * Math.PI * 2;
-                    const r = Math.random() * 0.12;
+                    const r = Math.random() * 0.14;
                     if (i % 3 === 0) {
-                        addMesh(foodGroup, new THREE.BoxGeometry(0.035, 0.035, 0.035), meatCubeColor, Math.cos(ang) * r, 0.02 + Math.random() * 0.02, Math.sin(ang) * r);
+                        addMesh(foodGroup, new THREE.BoxGeometry(0.035, 0.035, 0.035), meatCubeColor, Math.cos(ang) * r, 0.02 + Math.random() * 0.03, Math.sin(ang) * r);
                     } else {
-                        addMesh(foodGroup, new THREE.SphereGeometry(0.022, 8, 8), kibbleColor, Math.cos(ang) * r, 0.015 + Math.random() * 0.02, Math.sin(ang) * r);
+                        addMesh(foodGroup, new THREE.SphereGeometry(0.022, 8, 8), kibbleColor, Math.cos(ang) * r, 0.015 + Math.random() * 0.03, Math.sin(ang) * r);
                     }
                 }
-                foodGroup.visible = state.foodBowlPercent > 0;
-                foodGroup.scale.set(1, (state.foodBowlPercent / 100) * 1.0, 1);
+                const fPct = Math.max(0, Math.min(100, state.foodBowlPercent !== undefined ? state.foodBowlPercent : 100));
+                foodGroup.visible = fPct > 0;
+                foodGroup.scale.set(1, (fPct / 100) * 1.0, 1);
                 g.add(foodGroup);
                 foodBowlKibbleMesh = foodGroup;
 
@@ -2910,12 +3112,13 @@
             // RANDOM HỆ SỐ CÁ TÍNH RIÊNG BIỆT CHO TỪNG BÉ MÈO
             const pottyFactor = 0.85 + Math.random() * 0.3; // Hệ số đi vệ sinh (30-50p)
             const hungerFactor = 0.88 + Math.random() * 0.24; // Hệ số tiêu hóa (5-7p giảm 13%)
-            const playfulness = 0.75 + Math.random() * 0.5; // Mức độ thích tự đi chơi
-            const favoriteToys = ['wheel', 'tree', 'box', 'donut'];
-            const favToy = favoriteToys[Math.floor(Math.random() * favoriteToys.length)];
+            const playfulness = 0.85 + Math.random() * 0.3; // Mức độ hiếu động
+            const favoriteToys = ['wheel', 'tree', 'box', 'donut', 'flip'];
+            const favToy = catData.favToy || favoriteToys[Math.floor(Math.random() * favoriteToys.length)];
+            catData.favToy = favToy;
             const walkSpeed = 0.38 + Math.random() * 0.16;
             const pottyTimer = (1800 + Math.random() * 1200) * pottyFactor; // 30 - 50 phút
-            const playTimer = 60 + Math.random() * 150; // Tự đi chơi độc lập sau 1 - 3.5 phút
+            const playTimer = 10 + Math.random() * 20; // Tự giác đi chơi sau 10 - 30 giây!
             return {
                 id: catData.id, data: catData, breed, mesh: root, bodyPivot, headGroup, accessoryGroup, eyes, ears, legs, tailSegments,
                 aiState: 'wander', stateTimer: 2 + Math.random() * 4, moving: false, seed: Math.random() * 10,
@@ -3025,6 +3228,51 @@
                     }
                 }
 
+                // 2B. FLAWLESS 360-DEGREE BACKFLIP ANIMATION
+                if (a.flipData) {
+                    const fd = a.flipData;
+                    fd.progress += dt / fd.duration;
+                    if (fd.progress >= 1.0) {
+                        a.flipData = null;
+                        a.mesh.position.y = FLOOR_Y + 0.03;
+                        a.bodyPivot.position.y = 0.4;
+                        a.bodyPivot.rotation.x = 0;
+                        a.bodyPivot.rotation.z = 0;
+                        a.legs.forEach(l => { l.rotation.x = 0; l.position.y = -0.15; });
+                        a.aiState = 'sit';
+                        a.stateTimer = 2.5;
+                        playLevelUpSound();
+                    } else {
+                        const prg = fd.progress;
+                        // Parabolic jump arc in Y
+                        a.mesh.position.y = fd.startY + Math.sin(prg * Math.PI) * fd.peakHeight;
+
+                        // 360-degree backward backflip rotation (smooth ease-in-out)
+                        const rotProgress = prg < 0.5 ? 2 * prg * prg : -1 + (4 - 2 * prg) * prg;
+                        a.bodyPivot.rotation.x = -rotProgress * Math.PI * 2;
+                        a.bodyPivot.position.y = 0.4;
+
+                        // Dynamic paw tuck & landing reach
+                        a.legs.forEach((l, i) => {
+                            const front = i < 2;
+                            if (prg < 0.22) {
+                                l.rotation.x = front ? -0.45 : 0.55;
+                            } else if (prg < 0.78) {
+                                l.rotation.x = front ? 0.65 : -0.65;
+                                l.position.y = -0.09;
+                            } else {
+                                l.rotation.x = front ? -0.15 : 0.15;
+                                l.position.y = -0.15;
+                            }
+                        });
+
+                        if (a.tail) {
+                            a.tail.rotation.x = -0.3 + Math.sin(prg * Math.PI * 2) * 0.4;
+                        }
+                        return;
+                    }
+                }
+
                 // 3. RUNNING IN WHEEL OR WALKING / SPRINTING
                 const isRunningWheel = (a.aiState === 'running_wheel');
                 const isPotty = (a.aiState === 'using_litter');
@@ -3041,6 +3289,7 @@
                 if (mv) a.walkPhase += dt * (isRunningWheel ? 14.5 : 6.0);
                 const legSwing = mv ? Math.sin(a.walkPhase) * (isRunningWheel ? 0.75 : 0.45) : 0;
                 const isEating = a.aiState === 'eating';
+                const isDrinking = (a.aiState === 'drinking');
 
                 // Wheel Placement & Drum Spin
                 if (isRunningWheel) {
@@ -3048,17 +3297,17 @@
                     a.mesh.position.set(wheelPos.x, FLOOR_Y + 0.22, wheelPos.z + 0.05);
                     a.mesh.rotation.y = Math.PI / 2; // running in profile inside horizontal wheel
                     if (catWheelDrum) catWheelDrum.rotation.z += dt * 5.5;
-                } else if (a.aiState !== 'climbing' && !a.jumpData) {
+                } else if (a.aiState !== 'climbing' && !a.jumpData && !a.flipData) {
                     a.mesh.position.y = FLOOR_Y + 0.03;
                 }
 
-                // Energetic body bobbing when running
-                const bodyBob = isRunningWheel ? Math.abs(Math.sin(a.walkPhase * 2)) * 0.035 : (mv ? Math.abs(Math.sin(a.walkPhase)) * 0.02 : (isEating ? Math.sin(t * 8) * 0.015 : Math.sin(t * 2 + a.seed) * 0.005));
+                // Energetic body bobbing when running or eating/drinking
+                const bodyBob = isRunningWheel ? Math.abs(Math.sin(a.walkPhase * 2)) * 0.035 : (mv ? Math.abs(Math.sin(a.walkPhase)) * 0.02 : (isEating || isDrinking ? Math.sin(t * 8) * 0.015 : Math.sin(t * 2 + a.seed) * 0.005));
                 a.bodyPivot.position.y = p.bodyY + bodyBob;
                 a.bodyPivot.rotation.x = p.bodyRX + (isRunningWheel ? Math.sin(a.walkPhase) * 0.08 : 0);
                 a.bodyPivot.rotation.z = p.bodyRZ;
-                a.headGroup.position.y = p.headY + (isEating ? Math.sin(t * 8) * 0.025 : 0);
-                a.headGroup.rotation.x = p.headRX;
+                a.headGroup.position.y = p.headY + (isEating ? Math.sin(t * 8) * 0.025 : (isDrinking ? -0.06 + Math.sin(t * 12) * 0.015 : 0));
+                a.headGroup.rotation.x = p.headRX + (isDrinking ? 0.35 + Math.sin(t * 12) * 0.06 : 0);
                 a.headGroup.rotation.z = p.headRZ;
 
                 // 4 Paws Alternating Leg Animation
@@ -3098,10 +3347,10 @@
 
             catActors.forEach(actor => {
                 if (isDraggingCat && draggedCatActor === actor) return;
-                // If cat is actively jumping, do not run other AI logic to prevent mid-air freeze and sound glitch
-                if (actor.jumpData) return;
+                // If cat is actively jumping or backflipping, do not run other AI logic to prevent glitch
+                if (actor.jumpData || actor.flipData) return;
 
-                // 1. LASER POINTER CHASE (SMOOTH & RESPONSIVE FOLLOW)
+                // 1. LASER POINTER CHASE (SMOOTH & STRICTLY BOUNDED)
                 if (laserActive || (partnerLaserMesh && partnerLaserMesh.visible)) {
                     actor.aiState = 'wander';
                     actor.moving = true;
@@ -3109,13 +3358,20 @@
                     const dz = laserTarget3D.z - actor.mesh.position.z;
                     const dist = Math.hypot(dx, dz);
                     if (dist > 0.15) {
-                        actor.mesh.position.x += (dx / dist) * 1.1 * effDt;
-                        actor.mesh.position.z += (dz / dist) * 1.1 * effDt;
+                        actor.mesh.position.x += (dx / dist) * 1.25 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 1.25 * effDt;
                         actor.mesh.rotation.y = Math.atan2(dx, dz);
+                        // STRICT CLAMP: Mèo không bao giờ chạy ra ngoài phòng hay xuyên tường
+                        resolveCatWalkablePosition(actor.mesh.position, actor.id);
                     } else {
                         // Reached laser dot: pounce playful action!
                         actor.moving = false;
-                        actor.bodyPivot.position.y = 0.55;
+                        actor.bodyPivot.position.y = 0.52;
+                        const cData = state.cats.find(c => c.id === actor.id);
+                        if (cData) {
+                            cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 25);
+                            cData.boredom = 0;
+                        }
                     }
                     return;
                 }
@@ -3220,7 +3476,7 @@
                     return;
                 }
 
-                // 3. EATING AT FOOD STATION
+                // 3. EATING AT FOOD STATION (SỨC CHỨA LỚN: ĐỦ CHO 3 CON MÈO ĂN NO NÊ)
                 if (actor.aiState === 'eating') {
                     const dx = (bowlPos.x + 0.35) - actor.mesh.position.x;
                     const dz = (bowlPos.z + 0.35) - actor.mesh.position.z;
@@ -3234,30 +3490,91 @@
                         actor.moving = false;
                         actor.mesh.rotation.y = Math.atan2(bowlPos.x - actor.mesh.position.x, bowlPos.z - actor.mesh.position.z);
                         if (state.foodBowlPercent > 0) {
-                            state.foodBowlPercent = Math.max(0, state.foodBowlPercent - effDt * 7);
+                            // Sức chứa khay đủ 3 bé ăn no: tốc độ vơi chỉ 2.2%/s, tăng 7.5% no bụng/s
+                            state.foodBowlPercent = Math.max(0, state.foodBowlPercent - effDt * 2.2);
                             updateFoodBowlVisual();
+                            const cData = state.cats.find(c => c.id === actor.id);
+                            if (cData) {
+                                cData.hunger = Math.min(100, (cData.hunger || 70) + effDt * 7.5);
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 6);
+                                cData.boredom = 0;
+                            }
                         }
                     }
 
-                    if (actor.stateTimer <= 0) {
+                    if (actor.stateTimer <= 0 || (state.foodBowlPercent || 0) <= 0) {
                         actor.aiState = 'sit';
                         actor.stateTimer = 4;
                     }
                     return;
                 }
 
-                // 4. AUTONOMOUS BEHAVIOR CYCLE: TỰ CÓ THỜI GIAN RIÊNG ĐI CHƠI (KHÔNG CẦN CHỜ BUỒN CHÁN > 55%)
-                if (!actor.playTimer) actor.playTimer = 60 + Math.random() * 180;
+                // 3B. DRINKING WATER AT FOOD STATION (UỐNG NƯỚC MÁT LÀNH)
+                if (actor.aiState === 'going_to_drink' || actor.aiState === 'drinking') {
+                    const waterTargetX = bowlPos.x - 0.26;
+                    const waterTargetZ = bowlPos.z + 0.35;
+                    const dx = waterTargetX - actor.mesh.position.x;
+                    const dz = waterTargetZ - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+
+                    if (dist > 0.22 && actor.aiState === 'going_to_drink') {
+                        actor.moving = true;
+                        actor.mesh.position.x += (dx / dist) * 0.7 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.7 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        actor.moving = false;
+                        actor.aiState = 'drinking';
+                        actor.mesh.rotation.y = Math.atan2(bowlPos.x - 0.26 - actor.mesh.position.x, bowlPos.z + 0.18 - actor.mesh.position.z);
+
+                        if (!actor._lastLapSound || Date.now() - actor._lastLapSound > 420) {
+                            actor._lastLapSound = Date.now();
+                            playWaterLapSound();
+                        }
+
+                        if ((state.waterBowlPercent || 100) > 0) {
+                            state.waterBowlPercent = Math.max(0, (state.waterBowlPercent || 100) - effDt * 1.5);
+                            updateWaterBowlVisual();
+                            const cData = state.cats.find(c => c.id === actor.id);
+                            if (cData) {
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + effDt * 7.0);
+                                cData.thirst = Math.max(0, (cData.thirst || 0) - effDt * 20);
+                            }
+                        }
+
+                        actor.stateTimer -= effDt;
+                        if (actor.stateTimer <= 0) {
+                            actor.aiState = 'sit';
+                            actor.stateTimer = 3.5;
+                            showFloatingNotification(`💧 ${actor.data.name} đã uống nước mát đã khát! (+Tâm trạng 💖)`, '#0284c7', '✨');
+                        }
+                    }
+                    return;
+                }
+
+                // 4. AUTONOMOUS BEHAVIOR CYCLE: TỰ GIÁC ĐI CHƠI & UỐNG NƯỚC (THƯỜNG XUYÊN 15 - 35 GIÂY)
+                if (!actor.drinkTimer) actor.drinkTimer = 35 + Math.random() * 45;
+                actor.drinkTimer -= effDt;
+                if (actor.drinkTimer <= 0 && state.activeDecor.includes('food_station') &&
+                    actor.aiState !== 'climbing' && actor.aiState !== 'running_wheel' &&
+                    actor.aiState !== 'going_to_litter' && actor.aiState !== 'using_litter' &&
+                    actor.aiState !== 'eating' && actor.aiState !== 'drinking' && actor.aiState !== 'going_to_drink') {
+                    actor.aiState = 'going_to_drink';
+                    actor.stateTimer = 6.0;
+                    actor.drinkTimer = 60 + Math.random() * 70;
+                }
+
+                if (!actor.playTimer) actor.playTimer = 10 + Math.random() * 20;
                 actor.playTimer -= effDt;
 
                 // TỰ ĐỘNG ĐI CHƠI THEO LỊCH SINH HOẠT VÀ TÍNH CÁCH RIÊNG CỦA TỪNG BÉ
-                if (actor.playTimer <= 0 && actor.aiState !== 'climbing' && actor.aiState !== 'running_wheel' && actor.aiState !== 'going_to_litter' && actor.aiState !== 'using_litter') {
-                    // Reset thời gian đi chơi kế tiếp: 2 - 5 phút (ngẫu nhiên theo hệ số tính cách playfulness)
-                    actor.playTimer = (120 + Math.random() * 240) / (actor.playfulness || 1.0);
+                if (actor.playTimer <= 0 && actor.aiState !== 'climbing' && actor.aiState !== 'running_wheel' && actor.aiState !== 'going_to_litter' && actor.aiState !== 'using_litter' && actor.aiState !== 'drinking' && actor.aiState !== 'going_to_drink') {
+                    // Reset thời gian đi chơi kế tiếp: 15 - 35s để căn phòng luôn nhộn nhịp, mèo chủ động chơi
+                    actor.playTimer = (18 + Math.random() * 25) / (actor.playfulness || 1.0);
 
                     const cData = state.cats.find(c => c.id === actor.id);
                     const hasWheel = state.activeDecor.includes('cat_wheel');
-                    const hasTree = state.activeDecor.includes('cat_tree') && (!actor.lastClimbTime || (Date.now() - actor.lastClimbTime > 180000));
+                    const hasTree = state.activeDecor.includes('cat_tree') && (!actor.lastClimbTime || (Date.now() - actor.lastClimbTime > 25000));
                     const hasBox = state.activeDecor.includes('cardboard_box');
                     const hasDonut = state.activeDecor.includes('donut_bed');
 
@@ -3270,39 +3587,71 @@
                     availableToys.push('flip'); // Nhào lộn xiếc
 
                     if (availableToys.length > 0) {
-                        const pick = (actor.favToy && availableToys.includes(actor.favToy) && Math.random() < 0.5) 
-                            ? actor.favToy 
+                        // 75% ƯU TIÊN SỞ THÍCH CỦA BÉ (TỰ CHƠI ĐÚNG MÓN BÉ THÍCH)
+                        const favToy = (cData && cData.favToy) || actor.favToy || 'tree';
+                        const pick = (availableToys.includes(favToy) && Math.random() < 0.75) 
+                            ? favToy 
                             : availableToys[Math.floor(Math.random() * availableToys.length)];
+
+                        const isFav = (pick === favToy);
+                        const moodBoost = isFav ? 35 : 25;
+                        const favTag = isFav ? ' (món bé thích nhất ⭐)' : '';
 
                         if (pick === 'wheel') {
                             selectedCatId = actor.id;
                             commandCatEmote('wheel');
-                            if (cData) { cData.boredom = Math.max(0, (cData.boredom || 20) - 30); cData.love = Math.min(100, (cData.love || 80) + 3); }
-                            showFloatingNotification(`✨ ${actor.data.name} tự giác chạy vào bánh xe tập thể dục tít mù! 🏃`, '#06b6d4', '⚡');
+                            if (cData) {
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
+                                cData.love = Math.min(100, (cData.love || 80) + 5);
+                                cData.boredom = 0;
+                            }
+                            showFloatingNotification(`✨ ${actor.data.name} tự giác chạy bánh xe tít mù${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#06b6d4', '🏃');
+                            updateUI();
                             return;
                         } else if (pick === 'tree') {
                             selectedCatId = actor.id;
                             commandCatEmote('tree');
-                            if (cData) { cData.boredom = Math.max(0, (cData.boredom || 20) - 35); cData.love = Math.min(100, (cData.love || 80) + 4); }
-                            showFloatingNotification(`🌳 ${actor.data.name} tung tăng leo tháp mèo ngắm cảnh! 🐾`, '#8b5cf6', '🐱');
+                            if (cData) {
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
+                                cData.love = Math.min(100, (cData.love || 80) + 5);
+                                cData.boredom = 0;
+                            }
+                            showFloatingNotification(`🌳 ${actor.data.name} thích thú leo tháp mèo ngắm cảnh${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#8b5cf6', '🐾');
+                            updateUI();
                             return;
                         } else if (pick === 'box') {
                             selectedCatId = actor.id;
                             commandCatEmote('box');
-                            if (cData) cData.boredom = Math.max(0, (cData.boredom || 20) - 25);
-                            showFloatingNotification(`📦 ${actor.data.name} chui tọt vào hộp carton ấm cúng! 💕`, '#f59e0b', '🐱');
+                            if (cData) {
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
+                                cData.love = Math.min(100, (cData.love || 80) + 4);
+                                cData.boredom = 0;
+                            }
+                            showFloatingNotification(`📦 ${actor.data.name} chui tọt vào hộp carton ấm cúng${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#f59e0b', '🐱');
+                            updateUI();
                             return;
                         } else if (pick === 'donut') {
                             const donutPos = state.decorPositions['donut_bed'] || DEFAULT_DECOR_POSITIONS.donut_bed;
                             actor.mesh.position.set(donutPos.x, FLOOR_Y + 0.08, donutPos.z);
                             actor.aiState = 'loaf';
-                            actor.stateTimer = 16 + Math.random() * 14;
-                            if (cData) cData.boredom = Math.max(0, (cData.boredom || 20) - 20);
-                            showFloatingNotification(`🍩 ${actor.data.name} cuộn tròn êm ái trên đệm donut! 💤`, '#ec4899', '✨');
+                            actor.stateTimer = 14 + Math.random() * 12;
+                            if (cData) {
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
+                                cData.love = Math.min(100, (cData.love || 80) + 4);
+                                cData.boredom = 0;
+                            }
+                            showFloatingNotification(`🍩 ${actor.data.name} cuộn tròn êm ái trên đệm donut${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#ec4899', '✨');
+                            updateUI();
                             return;
                         } else if (pick === 'flip') {
                             selectedCatId = actor.id;
                             commandCatEmote('flip');
+                            if (cData) {
+                                cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
+                                cData.boredom = 0;
+                            }
+                            showFloatingNotification(`🤸 ${actor.data.name} biểu diễn nhào lộn một vòng cực ngầu${favTag}! (+${moodBoost}% Tâm trạng 💖)`, '#ec4899', '🎉');
+                            updateUI();
                             return;
                         }
                     }
@@ -3377,12 +3726,14 @@
                 }
                 cat.hunger = Math.max(5, (cat.hunger || 70) - (elapsedSeconds * cat.hungerRate));
 
-                // Boredom growth tự nhiên
-                cat.boredom = Math.min(100, Math.max(0, (cat.boredom !== undefined ? cat.boredom : 15) + (elapsedSeconds * 0.02)));
+                // Tâm trạng giảm tự nhiên rất chậm (chỉ giảm ~1% mỗi 50s nếu bỏ bê)
+                cat.happiness = Math.max(25, (cat.happiness !== undefined ? cat.happiness : 95) - (elapsedSeconds * 0.02));
+                cat.boredom = Math.min(100, Math.max(0, (cat.boredom !== undefined ? cat.boredom : 5) + (elapsedSeconds * 0.015)));
             });
 
             state.cleanliness = Math.max(10, (state.cleanliness || 100) - (elapsedSeconds / 220));
             state.hunger = Math.round(state.cats.reduce((acc, c) => acc + (c.hunger || 70), 0) / state.cats.length);
+            state.happiness = Math.round(state.cats.reduce((acc, c) => acc + (c.happiness || 80), 0) / state.cats.length);
         }
 
         function animateLoop() {
@@ -3410,36 +3761,62 @@
             const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
             const boxPos = state.decorPositions['cardboard_box'] || DEFAULT_DECOR_POSITIONS.cardboard_box;
 
+            const cData = state.cats.find(c => c.id === actor.id);
+            const favKey = actor.favToy || (cData ? cData.favToy : '');
+            const isFav = (cmd === favKey);
+            const boost = isFav ? 35 : 20;
+            if (cData) {
+                cData.happiness = Math.min(100, (cData.happiness || 80) + boost);
+                cData.love = Math.min(100, (cData.love || 85) + 3);
+                cData.boredom = 0;
+                state.happiness = Math.round(state.cats.reduce((acc, c) => acc + (c.happiness || 80), 0) / state.cats.length);
+                updateUI();
+            }
+
             if (cmd === 'sleep') {
                 actor.aiState = Math.random() < 0.5 ? 'back' : 'lie';
                 actor.stateTimer = 15;
                 playMeowSound(0.9);
-                showFloatingNotification(`😴 ${actor.data.name} đã nằm lăn ra ngủ phơi bụng rừ rừ!`, '#6366f1', '💤');
+                showFloatingNotification(`😴 ${actor.data.name} đã nằm lăn ra ngủ phơi bụng rừ rừ! (+${boost}% Tâm trạng 💖)`, '#6366f1', '💤');
             } else if (cmd === 'wheel') {
                 actor.aiState = 'running_wheel';
                 actor.stateTimer = 10;
                 playMeowSound(1.1);
-                showFloatingNotification(`🏃 ${actor.data.name} đang chạy bánh xe tập thể dục tít mù!`, '#06b6d4', '✨');
+                showFloatingNotification(`🏃 ${actor.data.name} đang chạy bánh xe tập thể dục tít mù${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#06b6d4', '✨');
             } else if (cmd === 'tree') {
                 actor.aiState = 'climbing'; actor.climbStep = 1; actor.climbTimer = 0;
                 playCatVoice(actor, 'greet');
-                showFloatingNotification(`🌳 ${actor.data.name} bắt đầu trèo lên tháp mèo nhiều tầng!`, '#8b5cf6', '🐾');
+                showFloatingNotification(`🌳 ${actor.data.name} bắt đầu trèo lên tháp mèo nhiều tầng${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#8b5cf6', '🐾');
             } else if (cmd === 'box') {
                 actor.aiState = 'loaf';
                 actor.mesh.position.set(boxPos.x, FLOOR_Y + 0.12, boxPos.z);
                 actor.stateTimer = 12;
                 playMeowSound(1.15);
-                showFloatingNotification(`📦 ${actor.data.name} đã chui tọt vào hộp carton ấm áp!`, '#f59e0b', '🐱');
+                showFloatingNotification(`📦 ${actor.data.name} đã chui tọt vào hộp carton ấm áp${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#f59e0b', '🐱');
             } else if (cmd === 'flip') {
-                actor.bodyPivot.position.y = 0.7;
-                actor.bodyPivot.rotation.x = Math.PI * 2;
-                playLevelUpSound();
-                showFloatingNotification(`🤸 ${actor.data.name} làm xiếc nhào lộn một vòng cực ngầu!`, '#ec4899', '🎉');
+                if (actor.flipData) return;
+                actor.aiState = 'backflipping';
+                actor.moving = false;
+                actor.climbStep = 0;
+                actor.jumpData = null;
+                actor.flipData = {
+                    progress: 0,
+                    duration: 0.9,
+                    startY: FLOOR_Y + 0.03,
+                    peakHeight: 0.85
+                };
+                actor.mesh.position.y = FLOOR_Y + 0.03;
+                playMeowSound(1.25);
+                showFloatingNotification(`🤸 ${actor.data.name} biểu diễn nhào lộn một vòng cực ngầu${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#ec4899', '🎉');
             } else if (cmd === 'come') {
                 actor.targetPos.set(0, FLOOR_Y + 0.03, 0.8);
                 actor.aiState = 'wander';
                 playMeowSound(1.3);
-                showFloatingNotification(`🐾 ${actor.data.name} đang chạy lại quấn chân bạn nè!`, '#10b981', '💕');
+                showFloatingNotification(`🐾 ${actor.data.name} đang chạy lại quấn chân bạn nè! (+${boost}% Tâm trạng 💖)`, '#10b981', '💕');
+            } else if (cmd === 'drink') {
+                actor.aiState = 'going_to_drink';
+                actor.stateTimer = 15;
+                showFloatingNotification(`💧 ${actor.data.name} đang chạy lại máng uống nước mát lành! (+${boost}% Tâm trạng 💖)`, '#0284c7', '✨');
             }
         }
 
@@ -3567,7 +3944,15 @@
 
             for (let hit of intersects) {
                 let obj = hit.object;
+                if (obj.userData && obj.userData.isLightSwitch) {
+                    toggleRoomLight();
+                    return;
+                }
                 while (obj) {
+                    if (obj.userData && obj.userData.isLightSwitch) {
+                        toggleRoomLight();
+                        return;
+                    }
                     if (obj.userData && obj.userData.catId) {
                         const actor = catActors.find(a => a.id === obj.userData.catId);
                         if (actor) { hitCatActor = actor; break; }
@@ -3681,7 +4066,18 @@
                 const pt = new THREE.Vector3();
                 raycaster.ray.intersectPlane(dragPlane, pt);
                 if (pt) {
+                    // GIỚI HẠN CHẶT CHẼ TRONG KHÔNG GIAN PHÒNG MÈO (Không bao giờ chiếu ra đường/xuyên tường)
+                    pt.x = Math.max(-3.5, Math.min(3.5, pt.x));
+                    pt.z = Math.max(-1.75, Math.min(1.35, pt.z));
+                    pt.y = FLOOR_Y + 0.02;
                     laserTarget3D.copy(pt);
+
+                    ensureLocalLaserMesh();
+                    if (localLaserMesh) {
+                        localLaserMesh.position.copy(laserTarget3D);
+                        localLaserMesh.visible = laserActive;
+                    }
+
                     // Gửi gói tin laser_move mỗi 70ms
                     const now = Date.now();
                     if (!window._lastLaserSyncTime || (now - window._lastLaserSyncTime > 70)) {
@@ -3769,8 +4165,20 @@
 
         function toggleLaserPointer() {
             laserActive = !laserActive;
-            document.getElementById('laser-dot').style.display = laserActive ? 'block' : 'none';
-            document.getElementById('laser-action-btn').classList.toggle('ring-4', laserActive);
+            const dot = document.getElementById('laser-dot');
+            if (dot) dot.style.display = laserActive ? 'block' : 'none';
+            const btn = document.getElementById('btn-laser-action');
+            if (btn) {
+                btn.classList.toggle('ring-4', laserActive);
+                btn.classList.toggle('ring-rose-400', laserActive);
+            }
+            ensureLocalLaserMesh();
+            if (localLaserMesh) localLaserMesh.visible = laserActive;
+            if (laserActive) {
+                showFloatingNotification('🔴 Đã bật đèn laser! Vờn chuột trêu mèo nào!', '#f43f5e', '✨');
+            } else {
+                showFloatingNotification('Đã tắt đèn laser', '#64748b', '🐾');
+            }
         }
 
         /********************************************************************
@@ -3779,58 +4187,90 @@
         function openFeedingModal() {
             document.getElementById('feeding-modal').classList.remove('hidden');
             document.getElementById('feed-stock-kibble').textContent = state.foodStock;
-            document.getElementById('bowl-status-txt').textContent = `Thức ăn: ${Math.round(state.foodBowlPercent)}% • Nước sạch: 100%`;
+            updateWaterBowlVisual();
         }
 
         function updateFoodBowlVisual() {
             if (foodBowlKibbleMesh) {
-                foodBowlKibbleMesh.visible = state.foodBowlPercent > 0;
-                foodBowlKibbleMesh.scale.set(1.0, (state.foodBowlPercent / 100) * 1.0, 1.0);
+                const fPct = Math.max(0, Math.min(100, state.foodBowlPercent !== undefined ? state.foodBowlPercent : 100));
+                foodBowlKibbleMesh.visible = fPct > 0;
+                foodBowlKibbleMesh.scale.set(1.0, Math.max(0.08, (fPct / 100) * 1.0), 1.0);
+            }
+            updateWaterBowlVisual();
+        }
+
+        function updateWaterBowlVisual() {
+            if (waterBowlMeshRef) {
+                const wPct = Math.max(0, Math.min(100, state.waterBowlPercent !== undefined ? state.waterBowlPercent : 100));
+                waterBowlMeshRef.visible = wPct > 0;
+                waterBowlMeshRef.scale.set(1.0, Math.max(0.08, wPct / 100), 1.0);
             }
             const bowlTxt = document.getElementById('bowl-status-txt');
             if (bowlTxt) {
-                bowlTxt.textContent = `Thức ăn: ${Math.round(state.foodBowlPercent)}% • Nước sạch: 100%`;
+                const fPct = Math.round(state.foodBowlPercent !== undefined ? state.foodBowlPercent : 100);
+                const wPct = Math.round(state.waterBowlPercent !== undefined ? state.waterBowlPercent : 100);
+                bowlTxt.innerHTML = `Thức ăn: <span class="${fPct > 20 ? 'text-emerald-700' : 'text-rose-600'} font-black">${fPct}%</span> • Nước sạch: <span class="${wPct > 20 ? 'text-sky-700' : 'text-rose-600'} font-black">${wPct}%</span>`;
             }
         }
 
-        function feedFoodToBowl(foodType) {
-            // STRICT FEEDING LIMIT: Cats ONLY eat if hunger < 75%
-            const targetCat = state.cats.find(c => c.id === selectedCatId) || state.cats[0];
-            if (targetCat && targetCat.hunger >= 75) {
-                alert(`😺 ${targetCat.name} đang no bụng (${Math.round(targetCat.hunger)}%) chưa đói đâu sen ơi!\n\nQuy định: Mèo chỉ ăn khi đói dưới 75% để tránh béo phì nhé 💕.`);
+        function refillWaterBowl() {
+            if ((state.waterBowlPercent !== undefined ? state.waterBowlPercent : 100) >= 100) {
+                showFloatingNotification('💧 Bình nước đã đầy ắp 100% rồi!', '#0284c7', '✨');
                 return;
             }
+            state.waterBowlPercent = 100;
+            playWaterPourSound();
+            updateWaterBowlVisual();
+            showFloatingNotification(`💧 ${currentUser} vừa rót đầy bình nước khoáng sạch mát lành cho mèo!`, '#0284c7', '✨');
+            saveGameState();
+            pushStateToCloud();
+        }
+
+        function feedFoodToBowl(foodType) {
+            // Cho phép đổ đầy khay bất cứ lúc nào, không giới hạn mèo > 75%
+            if ((state.foodBowlPercent || 0) >= 100) {
+                showFloatingNotification('🍲 Khay thức ăn đã đầy ắp 100% rồi sen ơi!', '#f59e0b', '✨');
+                return;
+            }
+
+            let addPercent = 35;
+            let foodName = 'Hạt hữu cơ';
 
             if (foodType === 'kibble') {
                 if (state.foodStock <= 0) { alert('Hết thức ăn hạt rồi! Hãy mua thêm tại Cửa hàng nhé.'); return; }
                 state.foodStock--;
+                addPercent = 35;
+                foodName = 'Hạt hữu cơ & thịt sấy';
             } else if (foodType === 'pate') {
                 if (state.coins < 25) { alert('Không đủ xu!'); return; }
                 state.coins -= 25;
+                addPercent = 50;
+                foodName = 'Pate cá ngừ';
             } else if (foodType === 'beef') {
                 if (state.coins < 35) { alert('Không đủ xu!'); return; }
                 state.coins -= 35;
+                addPercent = 70;
+                foodName = 'Thịt bò Kobe';
             } else if (foodType === 'churu') {
                 if (state.coins < 20) { alert('Không đủ xu!'); return; }
                 state.coins -= 20;
+                addPercent = 30;
+                foodName = 'Kem súp thưởng';
             }
 
-            closeModal('feeding-modal');
-            state.foodBowlPercent = 100;
-            state.hunger = Math.min(100, state.hunger + 30);
+            state.foodBowlPercent = Math.min(100, (state.foodBowlPercent || 0) + addPercent);
             state.stats.fedToday++;
             playCrunchSound();
             updateFoodBowlVisual();
 
-            showFloatingNotification(`🥫 ${currentUser} vừa đổ thức ăn thơm phức vào khay! Mèo đang chạy lại măm măm...`, '#10b981', '🥣');
+            showFloatingNotification(`🥫 ${currentUser} vừa đổ ${foodName} vào khay! (Khay đạt ${Math.round(state.foodBowlPercent)}%)`, '#10b981', '🥣');
 
+            // Các bé mèo đang đói hoặc thèm ăn sẽ chạy lại khay măm măm
             catActors.forEach(actor => {
-                actor.aiState = 'eating';
-                actor.stateTimer = 9.0;
                 const cData = state.cats.find(c => c.id === actor.id);
-                if (cData) {
-                    cData.hunger = Math.min(100, cData.hunger + 35);
-                    cData.love = Math.min(100, (cData.love || 85) + 5);
+                if (cData && (cData.hunger < 98) && actor.aiState !== 'climbing' && actor.aiState !== 'using_litter') {
+                    actor.aiState = 'eating';
+                    actor.stateTimer = 11.0;
                 }
             });
 
@@ -3859,8 +4299,8 @@
 
         function petSelectedCat() {
             const now = Date.now();
-            if (now - (state.lastPetTime || 0) < 15000) {
-                const waitSec = Math.ceil((15000 - (now - state.lastPetTime)) / 1000);
+            if (now - (state.lastPetTime || 0) < 3000) {
+                const waitSec = Math.ceil((3000 - (now - state.lastPetTime)) / 1000);
                 showFloatingNotification(`Mèo đang tận hưởng cái vuốt vừa rồi! Đợi ${waitSec}s nữa nhé`, '#f59e0b', '⏳');
                 return;
             }
@@ -3870,20 +4310,23 @@
             if (!cat) return;
             state.stats.pettedToday++;
             state.coins += 2; // Tiny reward to prevent coin spam
-            cat.love = Math.min(100, (cat.love || 85) + 4);
-            cat.boredom = Math.max(0, (cat.boredom || 25) - 30);
+            cat.love = Math.min(100, (cat.love || 85) + 5);
+            cat.happiness = Math.min(100, (cat.happiness || 80) + 15);
+            cat.boredom = 0;
+            state.happiness = Math.round(state.cats.reduce((acc, c) => acc + (c.happiness || 80), 0) / state.cats.length);
+
             const petActor = catActors.find(a => a.id === cat.id);
             if (petActor) playCatVoice(petActor, "purr");
             else playPurrSound();
-            showFloatingNotification(`👋 ${currentUser} vừa vuốt ve ${cat.name}! Bé rừ rừ thích thú (+2🪙)`, '#ec4899', '💖');
+            showFloatingNotification(`👋 ${currentUser} vừa vuốt ve ${cat.name}! Bé rừ rừ thích thú (+15% Tâm trạng 💕, +2🪙)`, '#ec4899', '💖');
             updateUI();
             pushStateToCloud();
         }
 
         function actionBrush() {
             const now = Date.now();
-            if (now - (state.lastBrushTime || 0) < 60000) {
-                const waitSec = Math.ceil((60000 - (now - state.lastBrushTime)) / 1000);
+            if (now - (state.lastBrushTime || 0) < 10000) {
+                const waitSec = Math.ceil((10000 - (now - state.lastBrushTime)) / 1000);
                 showFloatingNotification(`Lông bé đang mượt tinh tươm rồi! Đợi ${waitSec}s sau hãy chải tiếp nhé`, '#f59e0b', '⏳');
                 return;
             }
@@ -3893,14 +4336,17 @@
             if (!targetCat) return;
 
             playPurrSound();
-            state.happiness = Math.min(100, state.happiness + 15);
+            targetCat.happiness = Math.min(100, (targetCat.happiness || 80) + 25);
+            targetCat.love = Math.min(100, (targetCat.love || 85) + 8);
+            targetCat.boredom = 0;
+            state.happiness = Math.round(state.cats.reduce((acc, c) => acc + (c.happiness || 80), 0) / state.cats.length);
             state.stats.brushedToday++;
             state.coins += 10;
 
             const actor = catActors.find(a => a.id === targetCat.id);
             if (actor) { actor.aiState = 'lie'; actor.stateTimer = 5; }
 
-            showFloatingNotification(`🪮 ${currentUser} đã chải lông mượt mà cho ${targetCat.name}! (+10🪙)`, '#ec4899', '💖');
+            showFloatingNotification(`🪮 ${currentUser} đã chải lông cho ${targetCat.name}! Bé sung sướng (+25% Tâm trạng 💕, +10🪙)`, '#ec4899', '💖');
             updateUI();
             pushStateToCloud();
         }
@@ -4091,6 +4537,8 @@
             document.getElementById('stat-clean-bar').style.width = state.cleanliness + '%';
             document.getElementById('stat-clean-val').textContent = state.cleanliness + '%';
             document.getElementById('badge-food').textContent = state.foodStock;
+            updateFoodBowlVisual();
+            updateLightSwitchUI();
 
             updateInspectorPanel();
             updateMainQuestUI();
@@ -4113,6 +4561,47 @@
             document.getElementById('insp-hunger').textContent = Math.round(cat.hunger || 70) + '%';
             document.getElementById('insp-love').textContent = Math.round(cat.love || 85) + '% 💕';
             document.getElementById('insp-hat').textContent = (CAT_ACCESSORIES.find(a => a.id === cat.accessory) || { name: 'Chuông Vàng' }).name;
+
+            // Cập nhật thanh Tâm trạng & Sở thích đồ chơi
+            const mood = Math.round(cat.happiness !== undefined ? cat.happiness : 95);
+            let moodLabel = 'Cực kỳ phấn khích 🤩';
+            let moodColor = 'text-emerald-600';
+            let barGradient = 'from-emerald-400 to-teal-500';
+            if (mood >= 85) {
+                moodLabel = 'Hạnh phúc 💖';
+                moodColor = 'text-emerald-600';
+                barGradient = 'from-emerald-400 to-teal-500';
+            } else if (mood >= 65) {
+                moodLabel = 'Rất vui vẻ 🥰';
+                moodColor = 'text-teal-600';
+                barGradient = 'from-cyan-400 to-emerald-400';
+            } else if (mood >= 45) {
+                moodLabel = 'Vui vẻ bình thường 😺';
+                moodColor = 'text-amber-600';
+                barGradient = 'from-amber-400 to-emerald-400';
+            } else {
+                moodLabel = 'Hơi buồn chán 😿';
+                moodColor = 'text-rose-500';
+                barGradient = 'from-rose-400 to-amber-400';
+            }
+
+            const moodTxtEl = document.getElementById('insp-mood-txt') || document.getElementById('insp-boredom-txt');
+            const moodBarEl = document.getElementById('insp-mood-bar') || document.getElementById('insp-boredom-bar');
+            if (moodTxtEl) {
+                moodTxtEl.textContent = `${moodLabel} (${mood}%)`;
+                moodTxtEl.className = `${moodColor} font-black`;
+            }
+            if (moodBarEl) {
+                moodBarEl.style.width = mood + '%';
+                moodBarEl.className = `stat-bar-fill bg-gradient-to-r ${barGradient}`;
+            }
+
+            const catActor = catActors.find(a => a.id === cat.id);
+            const favToyKey = cat.favToy || (catActor ? catActor.favToy : 'tree');
+            if (!cat.favToy) cat.favToy = favToyKey;
+            const favToyDesc = (typeof TOY_NAMES !== 'undefined' && TOY_NAMES[favToyKey]) ? TOY_NAMES[favToyKey] : 'Leo tháp mèo 🌳';
+            const favToyEl = document.getElementById('insp-fav-toy');
+            if (favToyEl) favToyEl.textContent = favToyDesc;
 
             const nextExp = 100 - Math.round(cat.growthExp || 0);
             const isFull = (cat.hunger || 0) >= 60 && (cat.love || 0) >= 60;
