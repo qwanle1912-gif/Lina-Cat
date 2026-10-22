@@ -1398,22 +1398,22 @@
             // 2. Công tắc đèn phòng (ảnh hưởng đèn trần và bóng đèn)
             const isLightOn = (state && state.lampMode !== 'off');
             if (window.__roomLight) {
-                // Ánh sáng màu vàng nhạt ấm áp, dễ nhìn, dịu mắt và phù hợp với trời tối
-                window.__roomLight.color.setHex(0xffea9f);
-                window.__roomLight.intensity = isLightOn ? (isNight ? 0.95 : 0.72) : 0;
+                // Ánh sáng màu trắng kem dịu mắt, thanh lịch, nhạt hơn, tự nhiên hơn
+                window.__roomLight.color.setHex(0xfff8ee);
+                window.__roomLight.intensity = isLightOn ? (isNight ? 0.76 : 0.56) : 0;
             }
             if (window.__roomBulbMat) {
-                window.__roomBulbMat.color.setHex(0xfff3c4);
-                window.__roomBulbMat.emissive.setHex(0xffdf80);
-                window.__roomBulbMat.emissiveIntensity = isLightOn ? 1.8 : 0.05;
+                window.__roomBulbMat.color.setHex(0xfffcf5);
+                window.__roomBulbMat.emissive.setHex(0xfff1d6);
+                window.__roomBulbMat.emissiveIntensity = isLightOn ? 1.2 : 0.05;
             }
 
             // 3. Ánh sáng môi trường (Ambient): Luôn kết hợp ánh sáng ngoài trời + đèn trong phòng
             if (window.__amb) {
                 if (isLightOn) {
-                    // Khi bật đèn: phòng luôn ấm áp màu vàng nhạt, dịu mắt, dễ nhìn, phù hợp với trời tối
-                    window.__amb.intensity = isNight ? 0.48 : (isDawnOrSunset ? 0.58 : 0.65);
-                    window.__amb.color.setHex(isNight ? 0xfff4d0 : 0xfff7e6);
+                    // Khi bật đèn: phòng sáng êm dịu tông kem nhạt tự nhiên, không bị ám vàng chói
+                    window.__amb.intensity = isNight ? 0.44 : (isDawnOrSunset ? 0.54 : 0.62);
+                    window.__amb.color.setHex(isNight ? 0xfffaf4 : 0xfffcfa);
                 } else {
                     // Khi tắt đèn: phòng chìm trong ánh sáng tự nhiên từ cửa sổ (đêm thì tối lãng mạn, ngày thì sáng tự nhiên)
                     window.__amb.intensity = isNight ? 0.12 : (isDawnOrSunset ? 0.32 : 0.42);
@@ -1953,6 +1953,24 @@
             return +(lvl.minScale + norm * (lvl.maxScale - lvl.minScale)).toFixed(2);
         }
 
+        // TÍNH TOÁN TỐC ĐỘ ĐÓI CHUẨN XÁC:
+        // - Mèo cấp 1 khi ăn no (100%) cần 136 phút (8160 giây) để giảm 50% đói khi có người trông
+        // - Mỗi khi lên 1 cấp thì nhanh hơn 5% (Cấp 1: x1.0, Cấp 2: x1.05, Cấp 3: x1.10, Cấp 4: x1.15)
+        // - Khi không có ai trông (offline, tab ẩn, không có người trong phòng): thời gian đói tăng thêm 70% (no lâu hơn 70%, cần 231.2 phút = 3h51p mới giảm 50%)
+        function getCatHungerRate(cat, isSomeoneWatching = true) {
+            const BASE_SECONDS_FOR_50_PCT = 136 * 60; // 136 phút = 8160 giây
+            const baseRatePerSecond = 50 / BASE_SECONDS_FOR_50_PCT; // ~0.006127% mỗi giây
+
+            const catLevel = Math.max(1, cat.level || 1);
+            const levelMultiplier = 1 + (catLevel - 1) * 0.05;
+
+            // Thời gian đói tăng thêm 70% khi không có ai trông => thời gian x1.70 => tốc độ đói x(1 / 1.70)
+            const watchingMultiplier = isSomeoneWatching ? 1.0 : (1 / 1.70);
+            const personalityFactor = cat.hungerFactor || 1.0;
+
+            return baseRatePerSecond * levelMultiplier * watchingMultiplier * personalityFactor;
+        }
+
         const CAT_BREEDS = [
             { id: 'ginger', name: 'Mèo Cam Mướp', price: 150, pattern: 'tabby', bodyColor: 0xf59e0b, stripeColor: 0xb45309, bellyColor: 0xfffbeb, earColor: 0xd97706, eyeColor: 0x10b981, noseColor: 0xf472b6, pitch: 1.0, earType: 'normal', fluffy: false, desc: 'Ham ăn, quấn chủ, vằn hổ chữ M trên trán' },
             { id: 'british', name: 'Mèo Anh Lông Ngắn', price: 220, pattern: 'solid', bodyColor: 0x718096, stripeColor: 0x4a5568, bellyColor: 0xcbd5e1, earColor: 0x475569, eyeColor: 0xf59e0b, noseColor: 0xbe185d, pitch: 0.92, earType: 'normal', fluffy: false, desc: 'Má phệ tròn xoe, lông xám xanh nhung mịn' },
@@ -2098,9 +2116,8 @@
                             if (c.happiness === undefined || c.happiness === null) c.happiness = 95;
                             if (c.water === undefined || c.water === null) c.water = 85;
                             if (!c.favToy) c.favToy = toys[Math.floor(Math.random() * toys.length)];
-                            // Giảm thời gian đói đi 70% so với trước: ~90s - 126s giảm 13% đói
-                            const cycleSeconds = (300 + Math.random() * 120) * 0.3;
-                            c.hungerRate = 13 / cycleSeconds;
+                            // Tốc độ đói chuẩn: Mèo cấp 1 ăn no cần 136p (8160s) xuống 50%, mỗi cấp nhanh hơn 5%, không ai trông thời gian đói tăng thêm 70%
+                            c.hungerRate = getCatHungerRate(c, true);
                         });
                     }
                 } catch (e) {
@@ -2506,16 +2523,16 @@
             ceilingLamp.add(lampShade);
 
             roomBulbMat = new THREE.MeshStandardMaterial({
-                color: 0xfff3c4,
-                emissive: 0xffdf80,
-                emissiveIntensity: (state && state.lampMode !== 'off') ? 1.8 : 0.05
+                color: 0xfffcf5,
+                emissive: 0xfff1d6,
+                emissiveIntensity: (state && state.lampMode !== 'off') ? 1.2 : 0.05
             });
             roomBulbMesh = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), roomBulbMat);
             roomBulbMesh.position.y = -0.72;
             roomBulbMesh.userData.isLightSwitch = true;
             ceilingLamp.add(roomBulbMesh);
 
-            roomCeilingLight = new THREE.PointLight(0xffea9f, (state && state.lampMode !== 'off') ? 0.95 : 0.0, 16, 1.25);
+            roomCeilingLight = new THREE.PointLight(0xfff8ee, (state && state.lampMode !== 'off') ? 0.76 : 0.0, 16, 1.25);
             roomCeilingLight.position.y = -0.75;
             ceilingLamp.add(roomCeilingLight);
             window.__roomLight = roomCeilingLight;
@@ -3479,9 +3496,9 @@
                         root.traverse(child => {
                 child.userData.catId = catData.id;
             });
-            // RANDOM HỆ SỐ CÁ TÍNH RIÊNG BIỆT CHO TỪNG BÉ MÈO
+            // HỆ SỐ CÁ TÍNH RIÊNG BIỆT CHO TỪNG BÉ MÈO
             const pottyFactor = 0.85 + Math.random() * 0.3; // Hệ số đi vệ sinh (30-50p)
-            const hungerFactor = 0.88 + Math.random() * 0.24; // Hệ số tiêu hóa (5-7p giảm 13%)
+            const hungerFactor = 1.0; // Hệ số tiêu hóa chuẩn (136p xuống 50% ở cấp 1)
             const playfulness = 0.85 + Math.random() * 0.3; // Mức độ hiếu động
             const favoriteToys = ['wheel', 'tree', 'box', 'donut', 'flip'];
             const favToy = catData.favToy || favoriteToys[Math.floor(Math.random() * favoriteToys.length)];
@@ -3724,6 +3741,8 @@
 
             if (waitingCats.length > 0) {
                 const nextCat = waitingCats[0];
+                const takenSlots = new Set(currentlyEating.map(a => a.eatSlot));
+                nextCat.eatSlot = takenSlots.has(0) ? 1 : 0;
                 nextCat.aiState = 'eating';
                 nextCat.stateTimer = 11.0;
                 nextCat.queueEnterTime = null;
@@ -3981,30 +4000,40 @@
 
                 // 3. EATING AT FOOD STATION (CHỈ TỐI ĐA 2 CON ĂN CÙNG LÚC, CÒN LẠI XẾP HÀNG)
                 if (actor.aiState === 'eating') {
-                    // Phân chia 2 vị trí ăn cạnh nhau (Slot 0 và Slot 1) ở trước bát thức ăn
-                    const eatingCats = catActors.filter(a => a.aiState === 'eating');
-                    if (actor.eatSlot === undefined || actor.eatSlot === null) {
-                        const otherCat = eatingCats.find(a => a !== actor && a.eatSlot !== undefined && a.eatSlot !== null);
-                        actor.eatSlot = (otherCat && otherCat.eatSlot === 0) ? 1 : 0;
+                    // Đảm bảo 2 vị trí ăn cạnh nhau (Slot 0 và Slot 1) không bao giờ bị trùng lặp
+                    const otherEating = catActors.find(a => a !== actor && a.aiState === 'eating' && (a.eatSlot === 0 || a.eatSlot === 1));
+                    if (actor.eatSlot !== 0 && actor.eatSlot !== 1 || (otherEating && otherEating.eatSlot === actor.eatSlot)) {
+                        actor.eatSlot = (otherEating && otherEating.eatSlot === 0) ? 1 : 0;
                     }
-                    const targetEatX = bowlPos.x + (actor.eatSlot === 0 ? 0.13 : 0.39);
-                    const targetEatZ = bowlPos.z + 0.38;
+                    const targetEatX = bowlPos.x + (actor.eatSlot === 0 ? 0.08 : 0.44);
+                    const targetEatZ = bowlPos.z + 0.42;
 
                     const dx = targetEatX - actor.mesh.position.x;
                     const dz = targetEatZ - actor.mesh.position.z;
                     const dist = Math.hypot(dx, dz);
-                    if (dist > 0.18) {
+                    if (dist > 0.08) {
                         actor.moving = true;
-                        actor.mesh.position.x += (dx / dist) * 0.70 * effDt;
-                        actor.mesh.position.z += (dz / dist) * 0.70 * effDt;
-                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                        const moveDist = Math.min(dist, 0.72 * effDt);
+                        actor.mesh.position.x += (dx / dist) * moveDist;
+                        actor.mesh.position.z += (dz / dist) * moveDist;
+                        const walkAngle = Math.atan2(dx, dz);
+                        let dAng = walkAngle - actor.mesh.rotation.y;
+                        dAng = Math.atan2(Math.sin(dAng), Math.cos(dAng));
+                        actor.mesh.rotation.y += dAng * Math.min(1, effDt * 8);
                     } else {
                         actor.moving = false;
+                        // Nhẹ nhàng neo đúng vị trí slot, không bị giật hay lệch
+                        actor.mesh.position.x += dx * Math.min(1, effDt * 8);
+                        actor.mesh.position.z += dz * Math.min(1, effDt * 8);
+                        // Hướng đầu trực tiếp và mượt mà vào bát thức ăn (x: bowlPos.x + 0.26, z: bowlPos.z + 0.18)
+                        const targetAngle = Math.atan2((bowlPos.x + 0.26) - actor.mesh.position.x, (bowlPos.z + 0.18) - actor.mesh.position.z);
+                        let dAng = targetAngle - actor.mesh.rotation.y;
+                        dAng = Math.atan2(Math.sin(dAng), Math.cos(dAng));
+                        actor.mesh.rotation.y += dAng * Math.min(1, effDt * 8);
+
                         actor.stateTimer -= effDt;
-                        // Hướng đầu trực tiếp vào bát thức ăn
-                        actor.mesh.rotation.y = Math.atan2((bowlPos.x + 0.26) - actor.mesh.position.x, (bowlPos.z + 0.18) - actor.mesh.position.z);
                         if (state.foodBowlPercent > 0) {
-                            state.foodBowlPercent = Math.max(0, state.foodBowlPercent - effDt * 1.8);
+                            state.foodBowlPercent = Math.max(0, state.foodBowlPercent - effDt * 1.5);
                             updateFoodBowlVisual();
                             const cData = state.cats.find(c => c.id === actor.id);
                             if (cData) {
@@ -4023,8 +4052,10 @@
                         actor.pottyTimer = 300 + Math.random() * 300;
                         showFloatingNotification(`😋 ${actor.data.name} đã ăn no bụng! Khoảng 5-10 phút nữa bé sẽ cần đi vệ sinh 🚽`, '#10b981', '🐱');
 
-                        // Gọi ngay bé tiếp theo đang xếp hàng vào ăn
-                        promoteNextCatFromQueue();
+                        // Gọi ngay bé tiếp theo đang xếp hàng vào ăn nếu khay còn thức ăn
+                        if ((state.foodBowlPercent || 0) > 0) {
+                            promoteNextCatFromQueue();
+                        }
                     }
                     return;
                 }
@@ -4036,6 +4067,7 @@
                         actor.aiState = 'sit';
                         actor.stateTimer = 3.0;
                         actor.queueEnterTime = null;
+                        actor.eatSlot = null;
                         return;
                     }
 
@@ -4046,25 +4078,34 @@
                     const queueIdx = waitingCats.indexOf(actor);
                     const safeIdx = queueIdx >= 0 ? queueIdx : 0;
 
-                    // Xếp 2 hàng trật tự phía sau 2 vị trí đang ăn (hàng cách hàng 0.32m)
+                    // Xếp 2 hàng trật tự phía sau 2 vị trí đang ăn (hàng cách hàng 0.36m)
                     const row = Math.floor(safeIdx / 2);
                     const col = safeIdx % 2;
-                    const targetQx = bowlPos.x + (col === 0 ? 0.13 : 0.39);
-                    const targetQz = bowlPos.z + 0.68 + row * 0.32;
+                    const targetQx = bowlPos.x + (col === 0 ? 0.08 : 0.44);
+                    const targetQz = bowlPos.z + 0.72 + row * 0.36;
 
                     const dx = targetQx - actor.mesh.position.x;
                     const dz = targetQz - actor.mesh.position.z;
                     const dist = Math.hypot(dx, dz);
 
-                    if (dist > 0.14) {
+                    if (dist > 0.10) {
                         actor.moving = true;
-                        actor.mesh.position.x += (dx / dist) * 0.68 * effDt;
-                        actor.mesh.position.z += (dz / dist) * 0.68 * effDt;
-                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                        const moveDist = Math.min(dist, 0.68 * effDt);
+                        actor.mesh.position.x += (dx / dist) * moveDist;
+                        actor.mesh.position.z += (dz / dist) * moveDist;
+                        const walkAngle = Math.atan2(dx, dz);
+                        let dAng = walkAngle - actor.mesh.rotation.y;
+                        dAng = Math.atan2(Math.sin(dAng), Math.cos(dAng));
+                        actor.mesh.rotation.y += dAng * Math.min(1, effDt * 8);
                     } else {
                         actor.moving = false;
+                        actor.mesh.position.x += dx * Math.min(1, effDt * 8);
+                        actor.mesh.position.z += dz * Math.min(1, effDt * 8);
                         // Ngồi ngay ngắn xếp hàng nhìn về phía khay ăn
-                        actor.mesh.rotation.y = Math.atan2((bowlPos.x + 0.26) - actor.mesh.position.x, (bowlPos.z + 0.18) - actor.mesh.position.z);
+                        const targetAngle = Math.atan2((bowlPos.x + 0.26) - actor.mesh.position.x, (bowlPos.z + 0.18) - actor.mesh.position.z);
+                        let dAng = targetAngle - actor.mesh.rotation.y;
+                        dAng = Math.atan2(Math.sin(dAng), Math.cos(dAng));
+                        actor.mesh.rotation.y += dAng * Math.min(1, effDt * 8);
                     }
 
                     // Kiểm tra nếu có slot ăn trống thì vào ăn ngay
@@ -4143,15 +4184,17 @@
                     actor.aiState !== 'eating' && actor.aiState !== 'waiting_to_eat' &&
                     actor.aiState !== 'drinking' && actor.aiState !== 'going_to_drink') {
                     
-                    const eatingCount = catActors.filter(a => a.aiState === 'eating').length;
-                    if (eatingCount < 2) {
+                    const eatingCats = catActors.filter(a => a.aiState === 'eating');
+                    if (eatingCats.length < 2) {
+                        const takenSlots = new Set(eatingCats.map(a => a.eatSlot));
+                        actor.eatSlot = takenSlots.has(0) ? 1 : 0;
                         actor.aiState = 'eating';
                         actor.stateTimer = 11.0;
-                        actor.eatSlot = null;
                         actor.queueEnterTime = null;
                         showFloatingNotification(`🐟 ${actor.data.name} đang đói bụng (${Math.round(currentHunger)}%) nên tự đi lại khay ăn!`, '#f59e0b', '🥣');
                     } else {
                         actor.aiState = 'waiting_to_eat';
+                        actor.eatSlot = null;
                         actor.queueEnterTime = Date.now();
                         showFloatingNotification(`⏳ Khay đang có 2 bé ăn! ${actor.data.name} tự giác xếp hàng chờ tới lượt 🐾`, '#f59e0b', '🥣');
                     }
@@ -4273,15 +4316,21 @@
                 }
             });
 
-            // Keep cats separated
-            const minD = 0.95;
+            // Keep wandering cats separated (never push cats engaged in specific tasks like eating, queueing, drinking, climbing, litter, robot)
+            const lockedAiStates = ['eating', 'waiting_to_eat', 'going_to_drink', 'drinking', 'climbing', 'running_wheel', 'using_litter', 'riding_robot'];
+            const minSeparation = 0.46;
             for (let i = 0; i < catActors.length; i++) {
+                const catA = catActors[i];
+                if (lockedAiStates.includes(catA.aiState) || catA.jumpData || catA.flipData) continue;
                 for (let j = i + 1; j < catActors.length; j++) {
-                    const a = catActors[i].mesh.position, b = catActors[j].mesh.position;
+                    const catB = catActors[j];
+                    if (lockedAiStates.includes(catB.aiState) || catB.jumpData || catB.flipData) continue;
+
+                    const a = catA.mesh.position, b = catB.mesh.position;
                     let dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
-                    if (d < minD) {
-                        if (d < 0.001) { dx = 0.1; dz = 0.1; d = 0.14; }
-                        const push = (minD - d) * 0.25;
+                    if (d < minSeparation) {
+                        if (d < 0.001) { dx = 0.05; dz = 0.05; d = 0.07; }
+                        const push = (minSeparation - d) * 0.15;
                         a.x -= (dx / d) * push; a.z -= (dz / d) * push;
                         b.x += (dx / d) * push; b.z += (dz / d) * push;
                     }
@@ -4296,6 +4345,13 @@
             const elapsedSeconds = Math.max(0, (now - state.lastGrowthCheck) / 1000);
             state.lastGrowthCheck = now;
 
+            // Kiểm tra xem có người đang trông nom hay không:
+            // Có ít nhất 1 người online trong vòng 25s, tab đang hoạt động (không ẩn), và không phải khoảng gap offline lớn (>30s)
+            const qwanActive = (now - (state.presence?.Qwan || 0)) < 25000;
+            const linaActive = (now - (state.presence?.Lina || 0)) < 25000;
+            const isTabActive = (typeof document !== 'undefined' && !document.hidden);
+            const isSomeoneWatching = isTabActive && (qwanActive || linaActive) && (elapsedSeconds < 30);
+
             state.cats.forEach(cat => {
                 const isFull = (cat.hunger || 0) >= 60;
                 const isLoved = (cat.love || 0) >= 60;
@@ -4307,12 +4363,22 @@
                     addCatGrowthExp(cat, expGain, 'Thời gian thực', true);
                 }
 
-                // GIẢM THỜI GIAN ĐÓI ĐI 70% SO VỚI HIỆN TẠI (CHỈ CÒN 30% THỜI GIAN, ~90s - 126s GIẢM 13% ĐÓI)
-                if (!cat.hungerRate) {
-                    const cycleSeconds = (300 + Math.random() * 120) * 0.3; // 90 - 126 giây
-                    cat.hungerRate = 13 / cycleSeconds; // % giảm mỗi giây
+                // CÔNG THỨC GIẢM ĐỘ ĐÓI CHUẨN XÁC:
+                // - Mèo cấp 1 khi ăn no cần 136p (8160s) để xuống 50% khi có người trông
+                // - Lên 1 cấp thì nhanh hơn 5%
+                // - Khi không có ai trông thì thời gian đói tăng thêm 70% (no lâu hơn 70%, cần 231.2p = 3h51p mới xuống 50%)
+                const currentHungerRate = getCatHungerRate(cat, isSomeoneWatching);
+                cat.hungerRate = currentHungerRate;
+                cat.hunger = Math.max(5, (cat.hunger !== undefined ? cat.hunger : 70) - (elapsedSeconds * currentHungerRate));
+
+                // Khi offline / vắng nhà lâu (>30s) và trong khay còn đồ ăn: Mèo tự động ăn nếu đói < 36%
+                if (elapsedSeconds > 30 && (state.foodBowlPercent || 0) > 0 && cat.hunger < 36) {
+                    const neededHunger = Math.min(50, 85 - cat.hunger);
+                    const foodConsumed = Math.min(state.foodBowlPercent, neededHunger * 0.5);
+                    state.foodBowlPercent = Math.max(0, state.foodBowlPercent - foodConsumed);
+                    cat.hunger = Math.min(85, cat.hunger + foodConsumed * 2);
+                    updateFoodBowlVisual();
                 }
-                cat.hunger = Math.max(5, (cat.hunger || 70) - (elapsedSeconds * cat.hungerRate));
 
                 // GIẢM NƯỚC UỐNG MỖI 5 - 7 PHÚT (MÈO SẼ DẦN DẦN THẤY KHÁT NƯỚC)
                 if (!cat.thirstRate) {
@@ -5038,13 +5104,15 @@
             eligibleCats.forEach((actor, idx) => {
                 if (actor.aiState === 'eating') return;
                 if (eatingCount < 2) {
+                    const takenSlots = new Set(catActors.filter(a => a.aiState === 'eating' && a !== actor && (a.eatSlot === 0 || a.eatSlot === 1)).map(a => a.eatSlot));
+                    actor.eatSlot = takenSlots.has(0) ? 1 : 0;
                     actor.aiState = 'eating';
                     actor.stateTimer = 11.0;
-                    actor.eatSlot = null;
                     actor.queueEnterTime = null;
                     eatingCount++;
                 } else {
                     actor.aiState = 'waiting_to_eat';
+                    actor.eatSlot = null;
                     actor.queueEnterTime = Date.now() + idx * 50;
                     queuedCount++;
                 }
