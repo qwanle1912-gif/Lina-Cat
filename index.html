@@ -436,11 +436,19 @@
                 </div>
             </div>
 
-            <!-- STATS (VUI BUỒN CHÁN & NO BỤNG) -->
-            <div class="text-xs font-bold space-y-1.5 mb-2.5 bg-amber-50/80 p-2.5 rounded-xl border border-slate-300">
-                <div class="flex justify-between items-center">
-                    <span>🥫 No bụng:</span><span id="insp-hunger" class="text-emerald-600 font-extrabold">90%</span>
+            <!-- STATS (NO BỤNG, NƯỚC UỐNG, THÂN THIẾT, TÂM TRẠNG) -->
+            <div class="text-xs font-bold space-y-2 mb-2.5 bg-amber-50/80 p-2.5 rounded-xl border border-slate-300">
+                <!-- THANH NO BỤNG (MÈO ĐÓI <36% TỰ ĐỘNG ĐI ĂN NẾU CÓ ĐỒ ĂN) -->
+                <div>
+                    <div class="flex justify-between items-center mb-0.5">
+                        <span>🥫 No bụng:</span>
+                        <span id="insp-hunger" class="text-emerald-600 font-black">No nê (90%)</span>
+                    </div>
+                    <div class="stat-bar-track h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div id="insp-hunger-bar" class="stat-bar-fill bg-gradient-to-r from-amber-400 to-emerald-500" style="width: 90%"></div>
+                    </div>
                 </div>
+
                 <!-- THANH NƯỚC UỐNG (CHỈ UỐNG NẾU KHÁT) -->
                 <div>
                     <div class="flex justify-between items-center mb-0.5">
@@ -451,9 +459,18 @@
                         <div id="insp-water-bar" class="stat-bar-fill bg-gradient-to-r from-sky-400 to-blue-500" style="width: 85%"></div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span>💕 Thân thiết:</span><span id="insp-love" class="text-rose-500 font-extrabold">85%</span>
+
+                <!-- THANH THÂN THIẾT -->
+                <div>
+                    <div class="flex justify-between items-center mb-0.5">
+                        <span>💕 Thân thiết:</span>
+                        <span id="insp-love" class="text-rose-500 font-black">Gắn bó 💕 (100%)</span>
+                    </div>
+                    <div class="stat-bar-track h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div id="insp-love-bar" class="stat-bar-fill bg-gradient-to-r from-pink-400 to-rose-500" style="width: 100%"></div>
+                    </div>
                 </div>
+
                 <!-- THANH TÂM TRẠNG & SỞ THÍCH -->
                 <div>
                     <div class="flex justify-between items-center mb-0.5">
@@ -737,7 +754,7 @@
                 </div>
 
                 <div class="text-[11px] font-extrabold text-amber-800 bg-amber-100/70 px-3 py-1.5 rounded-xl border border-amber-300 flex items-center justify-between">
-                    <span>🍲 Khay thức ăn lớn: Đủ cho 3 bé ăn no nê!</span>
+                    <span>🍲 Máy ăn tự động: Tối đa 2 bé ăn cùng lúc • Các bé khác xếp hàng trật tự!</span>
                     <span class="text-[10px] text-slate-600 font-bold">Đổ đầy khay bất cứ lúc nào</span>
                 </div>
 
@@ -1381,18 +1398,22 @@
             // 2. Công tắc đèn phòng (ảnh hưởng đèn trần và bóng đèn)
             const isLightOn = (state && state.lampMode !== 'off');
             if (window.__roomLight) {
-                window.__roomLight.intensity = isLightOn ? (isNight ? 1.15 : 0.8) : 0;
+                // Ánh sáng màu vàng nhạt ấm áp, dễ nhìn, dịu mắt và phù hợp với trời tối
+                window.__roomLight.color.setHex(0xffea9f);
+                window.__roomLight.intensity = isLightOn ? (isNight ? 0.95 : 0.72) : 0;
             }
             if (window.__roomBulbMat) {
-                window.__roomBulbMat.emissiveIntensity = isLightOn ? 2.8 : 0.05;
+                window.__roomBulbMat.color.setHex(0xfff3c4);
+                window.__roomBulbMat.emissive.setHex(0xffdf80);
+                window.__roomBulbMat.emissiveIntensity = isLightOn ? 1.8 : 0.05;
             }
 
             // 3. Ánh sáng môi trường (Ambient): Luôn kết hợp ánh sáng ngoài trời + đèn trong phòng
             if (window.__amb) {
                 if (isLightOn) {
-                    // Khi bật đèn: phòng luôn ấm áp, sáng sủa
-                    window.__amb.intensity = isNight ? 0.45 : (isDawnOrSunset ? 0.58 : 0.68);
-                    window.__amb.color.setHex(0xfff5e6);
+                    // Khi bật đèn: phòng luôn ấm áp màu vàng nhạt, dịu mắt, dễ nhìn, phù hợp với trời tối
+                    window.__amb.intensity = isNight ? 0.48 : (isDawnOrSunset ? 0.58 : 0.65);
+                    window.__amb.color.setHex(isNight ? 0xfff4d0 : 0xfff7e6);
                 } else {
                     // Khi tắt đèn: phòng chìm trong ánh sáng tự nhiên từ cửa sổ (đêm thì tối lãng mạn, ngày thì sáng tự nhiên)
                     window.__amb.intensity = isNight ? 0.12 : (isDawnOrSunset ? 0.32 : 0.42);
@@ -2485,16 +2506,16 @@
             ceilingLamp.add(lampShade);
 
             roomBulbMat = new THREE.MeshStandardMaterial({
-                color: 0xffedd5,
-                emissive: 0xffd978,
-                emissiveIntensity: (state && state.lampMode !== 'off') ? 2.8 : 0.05
+                color: 0xfff3c4,
+                emissive: 0xffdf80,
+                emissiveIntensity: (state && state.lampMode !== 'off') ? 1.8 : 0.05
             });
             roomBulbMesh = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), roomBulbMat);
             roomBulbMesh.position.y = -0.72;
             roomBulbMesh.userData.isLightSwitch = true;
             ceilingLamp.add(roomBulbMesh);
 
-            roomCeilingLight = new THREE.PointLight(0xffecd1, (state && state.lampMode !== 'off') ? 1.05 : 0.0, 16, 1.3);
+            roomCeilingLight = new THREE.PointLight(0xffea9f, (state && state.lampMode !== 'off') ? 0.95 : 0.0, 16, 1.25);
             roomCeilingLight.position.y = -0.75;
             ceilingLamp.add(roomCeilingLight);
             window.__roomLight = roomCeilingLight;
@@ -3626,9 +3647,10 @@
                 const isRunningWheel = (a.aiState === 'running_wheel');
                 const isPotty = (a.aiState === 'using_litter');
                 const isRidingRobot = (a.aiState === 'riding_robot');
+                const isWaitingToEat = (a.aiState === 'waiting_to_eat');
                 const mv = !!a.moving || isRunningWheel;
 
-                const poseKey = a.aiState === 'eating' ? 'eating' : ((isPotty || isRidingRobot) ? 'sit' : (a.aiState === 'loaf' ? 'loaf' : (mv ? 'stand' : (CAT_POSES[a.aiState] ? a.aiState : 'stand'))));
+                const poseKey = a.aiState === 'eating' ? 'eating' : (((isPotty || isRidingRobot || (isWaitingToEat && !mv))) ? 'sit' : (a.aiState === 'loaf' ? 'loaf' : (mv ? 'stand' : (CAT_POSES[a.aiState] ? a.aiState : 'stand'))));
                 const P = CAT_POSES[poseKey] || CAT_POSES.stand;
                 if (!a.pose) a.pose = Object.assign({}, CAT_POSES.stand);
                 const k = Math.min(1, dt * 6.0);
@@ -3691,6 +3713,24 @@
         /********************************************************************
          * 8. CAT AI, LASER CHASING & TREE CLIMBING LOGIC
          ********************************************************************/
+        function promoteNextCatFromQueue() {
+            if ((state.foodBowlPercent || 0) <= 0) return;
+            const currentlyEating = catActors.filter(a => a.aiState === 'eating');
+            if (currentlyEating.length >= 2) return;
+
+            const waitingCats = catActors
+                .filter(a => a.aiState === 'waiting_to_eat')
+                .sort((a, b) => (a.queueEnterTime || 0) - (b.queueEnterTime || 0));
+
+            if (waitingCats.length > 0) {
+                const nextCat = waitingCats[0];
+                nextCat.aiState = 'eating';
+                nextCat.stateTimer = 11.0;
+                nextCat.queueEnterTime = null;
+                showFloatingNotification(`✨ Đến lượt ${nextCat.data.name} vào măm măm rồi! 🥣`, '#10b981', '🐱');
+            }
+        }
+
         function updateCatsAI(dt) {
             const effDt = dt * (state.gameSpeed === 0 ? 0 : (state.gameSpeed === 3 ? 2.2 : 1.0));
             if (effDt <= 0) return;
@@ -3939,22 +3979,32 @@
                     return;
                 }
 
-                // 3. EATING AT FOOD STATION (SỨC CHỨA LỚN: ĐỦ CHO 3 CON MÈO ĂN NO NÊ)
+                // 3. EATING AT FOOD STATION (CHỈ TỐI ĐA 2 CON ĂN CÙNG LÚC, CÒN LẠI XẾP HÀNG)
                 if (actor.aiState === 'eating') {
-                    const dx = (bowlPos.x + 0.35) - actor.mesh.position.x;
-                    const dz = (bowlPos.z + 0.35) - actor.mesh.position.z;
+                    // Phân chia 2 vị trí ăn cạnh nhau (Slot 0 và Slot 1) ở trước bát thức ăn
+                    const eatingCats = catActors.filter(a => a.aiState === 'eating');
+                    if (actor.eatSlot === undefined || actor.eatSlot === null) {
+                        const otherCat = eatingCats.find(a => a !== actor && a.eatSlot !== undefined && a.eatSlot !== null);
+                        actor.eatSlot = (otherCat && otherCat.eatSlot === 0) ? 1 : 0;
+                    }
+                    const targetEatX = bowlPos.x + (actor.eatSlot === 0 ? 0.13 : 0.39);
+                    const targetEatZ = bowlPos.z + 0.38;
+
+                    const dx = targetEatX - actor.mesh.position.x;
+                    const dz = targetEatZ - actor.mesh.position.z;
                     const dist = Math.hypot(dx, dz);
-                    if (dist > 0.25) {
+                    if (dist > 0.18) {
                         actor.moving = true;
-                        actor.mesh.position.x += (dx / dist) * 0.65 * effDt;
-                        actor.mesh.position.z += (dz / dist) * 0.65 * effDt;
+                        actor.mesh.position.x += (dx / dist) * 0.70 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.70 * effDt;
                         actor.mesh.rotation.y = Math.atan2(dx, dz);
                     } else {
                         actor.moving = false;
                         actor.stateTimer -= effDt;
-                        actor.mesh.rotation.y = Math.atan2(bowlPos.x - actor.mesh.position.x, bowlPos.z - actor.mesh.position.z);
+                        // Hướng đầu trực tiếp vào bát thức ăn
+                        actor.mesh.rotation.y = Math.atan2((bowlPos.x + 0.26) - actor.mesh.position.x, (bowlPos.z + 0.18) - actor.mesh.position.z);
                         if (state.foodBowlPercent > 0) {
-                            state.foodBowlPercent = Math.max(0, state.foodBowlPercent - effDt * 2.2);
+                            state.foodBowlPercent = Math.max(0, state.foodBowlPercent - effDt * 1.8);
                             updateFoodBowlVisual();
                             const cData = state.cats.find(c => c.id === actor.id);
                             if (cData) {
@@ -3968,10 +4018,57 @@
                     if (actor.stateTimer <= 0 || (state.foodBowlPercent || 0) <= 0) {
                         actor.aiState = 'sit';
                         actor.stateTimer = 4;
+                        actor.eatSlot = null;
                         // Sau khi ăn xong khoảng 5-10p thì mèo sẽ đi vệ sinh
                         actor.pottyTimer = 300 + Math.random() * 300;
                         showFloatingNotification(`😋 ${actor.data.name} đã ăn no bụng! Khoảng 5-10 phút nữa bé sẽ cần đi vệ sinh 🚽`, '#10b981', '🐱');
+
+                        // Gọi ngay bé tiếp theo đang xếp hàng vào ăn
+                        promoteNextCatFromQueue();
                     }
+                    return;
+                }
+
+                // 3A. WAITING IN QUEUE TO EAT (XẾP HÀNG CHỜ 2 CON ĂN XONG)
+                if (actor.aiState === 'waiting_to_eat') {
+                    // Nếu hết thức ăn trong khay thì giải tán hàng đợi
+                    if ((state.foodBowlPercent || 0) <= 0) {
+                        actor.aiState = 'sit';
+                        actor.stateTimer = 3.0;
+                        actor.queueEnterTime = null;
+                        return;
+                    }
+
+                    // Xác định thứ tự xếp hàng của bé
+                    const waitingCats = catActors
+                        .filter(a => a.aiState === 'waiting_to_eat')
+                        .sort((a, b) => (a.queueEnterTime || 0) - (b.queueEnterTime || 0));
+                    const queueIdx = waitingCats.indexOf(actor);
+                    const safeIdx = queueIdx >= 0 ? queueIdx : 0;
+
+                    // Xếp 2 hàng trật tự phía sau 2 vị trí đang ăn (hàng cách hàng 0.32m)
+                    const row = Math.floor(safeIdx / 2);
+                    const col = safeIdx % 2;
+                    const targetQx = bowlPos.x + (col === 0 ? 0.13 : 0.39);
+                    const targetQz = bowlPos.z + 0.68 + row * 0.32;
+
+                    const dx = targetQx - actor.mesh.position.x;
+                    const dz = targetQz - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+
+                    if (dist > 0.14) {
+                        actor.moving = true;
+                        actor.mesh.position.x += (dx / dist) * 0.68 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.68 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        actor.moving = false;
+                        // Ngồi ngay ngắn xếp hàng nhìn về phía khay ăn
+                        actor.mesh.rotation.y = Math.atan2((bowlPos.x + 0.26) - actor.mesh.position.x, (bowlPos.z + 0.18) - actor.mesh.position.z);
+                    }
+
+                    // Kiểm tra nếu có slot ăn trống thì vào ăn ngay
+                    promoteNextCatFromQueue();
                     return;
                 }
 
@@ -4035,7 +4132,32 @@
                     return;
                 }
 
-                // 4. AUTONOMOUS DRINKING: CHỈ UỐNG NẾU KHÁT (NƯỚC DƯỚI 50%)
+                // 4A. AUTONOMOUS EATING: KHI ĐÓI DƯỚI 36% THÌ MÈO TỰ ĐI ĂN NẾU TRONG KHAY CÓ ĐỒ ĂN (TỐI ĐA 2 CON CÙNG LÚC, CÒN LẠI XẾP HÀNG)
+                const cDataForHunger = state.cats.find(c => c.id === actor.id);
+                const currentHunger = cDataForHunger ? (cDataForHunger.hunger !== undefined ? cDataForHunger.hunger : 70) : 70;
+                if (currentHunger < 36 && (state.foodBowlPercent || 0) > 0 &&
+                    state.activeDecor.includes('food_station') &&
+                    actor.aiState !== 'climbing' && actor.aiState !== 'running_wheel' &&
+                    actor.aiState !== 'going_to_litter' && actor.aiState !== 'using_litter' &&
+                    actor.aiState !== 'riding_robot' &&
+                    actor.aiState !== 'eating' && actor.aiState !== 'waiting_to_eat' &&
+                    actor.aiState !== 'drinking' && actor.aiState !== 'going_to_drink') {
+                    
+                    const eatingCount = catActors.filter(a => a.aiState === 'eating').length;
+                    if (eatingCount < 2) {
+                        actor.aiState = 'eating';
+                        actor.stateTimer = 11.0;
+                        actor.eatSlot = null;
+                        actor.queueEnterTime = null;
+                        showFloatingNotification(`🐟 ${actor.data.name} đang đói bụng (${Math.round(currentHunger)}%) nên tự đi lại khay ăn!`, '#f59e0b', '🥣');
+                    } else {
+                        actor.aiState = 'waiting_to_eat';
+                        actor.queueEnterTime = Date.now();
+                        showFloatingNotification(`⏳ Khay đang có 2 bé ăn! ${actor.data.name} tự giác xếp hàng chờ tới lượt 🐾`, '#f59e0b', '🥣');
+                    }
+                }
+
+                // 4B. AUTONOMOUS DRINKING: CHỈ UỐNG NẾU KHÁT (NƯỚC DƯỚI 50%)
                 const cDataForWater = state.cats.find(c => c.id === actor.id);
                 const currentWater = cDataForWater ? (cDataForWater.water !== undefined ? cDataForWater.water : 85) : 85;
                 if (!actor.drinkTimer) actor.drinkTimer = 30 + Math.random() * 40;
@@ -4899,14 +5021,38 @@
 
             showFloatingNotification(`🥫 ${currentUser} vừa đổ ${foodName} vào khay! (Khay đạt ${Math.round(state.foodBowlPercent)}%)`, '#10b981', '🥣');
 
-            // Các bé mèo đang đói hoặc thèm ăn sẽ chạy lại khay măm măm
-            catActors.forEach(actor => {
-                const cData = state.cats.find(c => c.id === actor.id);
-                if (cData && (cData.hunger < 98) && actor.aiState !== 'climbing' && actor.aiState !== 'using_litter') {
+            // Chỉ tối đa 2 bé ăn cùng lúc! Các bé còn lại xếp hàng trật tự chờ tới lượt
+            const eligibleCats = catActors
+                .filter(actor => {
+                    const cData = state.cats.find(c => c.id === actor.id);
+                    return cData && (cData.hunger < 98) && actor.aiState !== 'climbing' && actor.aiState !== 'using_litter';
+                })
+                .sort((a, b) => {
+                    const cA = state.cats.find(c => c.id === a.id);
+                    const cB = state.cats.find(c => c.id === b.id);
+                    return (cA.hunger || 70) - (cB.hunger || 70);
+                });
+
+            let eatingCount = catActors.filter(a => a.aiState === 'eating').length;
+            let queuedCount = 0;
+            eligibleCats.forEach((actor, idx) => {
+                if (actor.aiState === 'eating') return;
+                if (eatingCount < 2) {
                     actor.aiState = 'eating';
                     actor.stateTimer = 11.0;
+                    actor.eatSlot = null;
+                    actor.queueEnterTime = null;
+                    eatingCount++;
+                } else {
+                    actor.aiState = 'waiting_to_eat';
+                    actor.queueEnterTime = Date.now() + idx * 50;
+                    queuedCount++;
                 }
             });
+
+            if (queuedCount > 0) {
+                showFloatingNotification(`🐾 ${eligibleCats.length} bé mèo cùng muốn ăn: 2 bé ăn trước, ${queuedCount} bé đang xếp hàng trật tự! 💕`, '#f59e0b', '🥣');
+            }
 
             updateUI();
             pushStateToCloud();
@@ -5213,9 +5359,61 @@
             document.getElementById('insp-level-badge').textContent = lvl.badge;
             document.getElementById('insp-growth-val').textContent = `Lớn: ${Math.round(cat.growthExp || 0)}%`;
             document.getElementById('insp-growth-bar').style.width = (cat.growthExp || 0) + '%';
-            document.getElementById('insp-hunger').textContent = Math.round(cat.hunger || 70) + '%';
-            document.getElementById('insp-love').textContent = Math.round(cat.love || 85) + '% 💕';
             document.getElementById('insp-hat').textContent = (CAT_ACCESSORIES.find(a => a.id === cat.accessory) || { name: 'Chuông Vàng' }).name;
+
+            // Cập nhật thanh No bụng (Mèo đói <36% tự động đi ăn nếu trong khay có đồ ăn)
+            const catHunger = Math.round(cat.hunger !== undefined ? cat.hunger : 70);
+            const hungerTxtEl = document.getElementById('insp-hunger');
+            const hungerBarEl = document.getElementById('insp-hunger-bar');
+            if (hungerTxtEl) {
+                let hungerLabel = 'No nê';
+                let hungerColor = 'text-emerald-600';
+                let hungerGrad = 'from-amber-400 to-emerald-500';
+                if (catHunger < 36) {
+                    hungerLabel = 'Đang đói bụng! 🐟';
+                    hungerColor = 'text-rose-600';
+                    hungerGrad = 'from-rose-500 to-amber-500';
+                } else if (catHunger < 70) {
+                    hungerLabel = 'Hơi đói';
+                    hungerColor = 'text-amber-600';
+                    hungerGrad = 'from-amber-400 to-orange-400';
+                }
+                hungerTxtEl.textContent = `${hungerLabel} (${catHunger}%)`;
+                hungerTxtEl.className = `${hungerColor} font-black`;
+                if (hungerBarEl) {
+                    hungerBarEl.style.width = Math.min(100, Math.max(0, catHunger)) + '%';
+                    hungerBarEl.className = `stat-bar-fill bg-gradient-to-r ${hungerGrad}`;
+                }
+            }
+
+            // Cập nhật thanh Thân thiết
+            const catLove = Math.round(cat.love !== undefined ? cat.love : 85);
+            const loveTxtEl = document.getElementById('insp-love');
+            const loveBarEl = document.getElementById('insp-love-bar');
+            if (loveTxtEl) {
+                let loveLabel = 'Gắn bó 💕';
+                let loveColor = 'text-rose-600';
+                let loveGrad = 'from-pink-400 to-rose-500';
+                if (catLove >= 90) {
+                    loveLabel = 'Quấn chủ 💕';
+                    loveColor = 'text-pink-600';
+                    loveGrad = 'from-pink-400 to-rose-500';
+                } else if (catLove >= 60) {
+                    loveLabel = 'Thân thiết 💖';
+                    loveColor = 'text-rose-500';
+                    loveGrad = 'from-pink-300 to-rose-400';
+                } else {
+                    loveLabel = 'Còn e dè 🐾';
+                    loveColor = 'text-slate-600';
+                    loveGrad = 'from-slate-400 to-pink-300';
+                }
+                loveTxtEl.textContent = `${loveLabel} (${catLove}%)`;
+                loveTxtEl.className = `${loveColor} font-black`;
+                if (loveBarEl) {
+                    loveBarEl.style.width = Math.min(100, Math.max(0, catLove)) + '%';
+                    loveBarEl.className = `stat-bar-fill bg-gradient-to-r ${loveGrad}`;
+                }
+            }
 
             // Cập nhật thanh Nước uống (Chỉ uống nếu khát)
             const catWater = Math.round(cat.water !== undefined ? cat.water : 85);
@@ -5493,15 +5691,31 @@
             const area = document.getElementById('shop-content-area');
             area.innerHTML = '';
             if (tab === 'cats') {
+                const totalBreeds = CAT_BREEDS.length;
+                const ownedCount = state.cats.length;
+                area.innerHTML += `
+                    <div class="mb-2 p-2 bg-amber-50/90 rounded-xl border border-amber-200 flex justify-between items-center text-xs">
+                        <span class="font-extrabold text-amber-950">🐱 Quy định nuôi: Mỗi loài 1 con</span>
+                        <span class="font-black text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-amber-300">Đã nhận nuôi: ${ownedCount}/${totalBreeds} loài</span>
+                    </div>
+                `;
                 CAT_BREEDS.forEach(breed => {
+                    const owned = state.cats.some(c => c.breedId === breed.id);
                     area.innerHTML += `
-                        <div class="cozy-card p-2.5 flex justify-between items-center bg-white">
+                        <div class="cozy-card p-2.5 flex justify-between items-center bg-white ${owned ? 'opacity-80 bg-slate-50' : ''}">
                             <div>
-                                <div class="font-black text-xs sm:text-sm">${breed.name}</div>
+                                <div class="font-black text-xs sm:text-sm flex items-center gap-1.5">
+                                    <span>${breed.name}</span>
+                                    ${owned ? '<span class="text-[9.5px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-black">✓ Đã nuôi</span>' : ''}
+                                </div>
                                 <div class="text-[10px] font-bold text-slate-500">${breed.desc}</div>
                                 <div class="text-xs font-black text-amber-600 mt-0.5">🪙 ${breed.price}</div>
                             </div>
-                            <button onclick="buyCat('${breed.id}', ${breed.price})" class="cozy-btn px-3 py-1 bg-emerald-400 text-white font-black text-xs">Nuôi</button>
+                            <button onclick="buyCat('${breed.id}', ${breed.price})" 
+                                class="cozy-btn px-3 py-1 ${owned ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-emerald-400 hover:bg-emerald-500 text-white'} font-black text-xs" 
+                                ${owned ? 'disabled title="Mỗi loài mèo chỉ được nuôi tối đa 1 con"' : ''}>
+                                ${owned ? 'Đã có' : 'Nuôi'}
+                            </button>
                         </div>`;
                 });
             } else if (tab === 'decor') {
@@ -5531,6 +5745,11 @@
         }
 
         function buyCat(breedId, price) {
+            const alreadyOwned = state.cats.some(c => c.breedId === breedId);
+            if (alreadyOwned) {
+                alert('Bạn đã nhận nuôi một bé thuộc giống này rồi! Mỗi loài mèo chỉ nuôi tối đa 1 con nhé 💕');
+                return;
+            }
             if (state.coins < price) { alert('Không đủ xu!'); return; }
             state.coins -= price;
             const breed = CAT_BREEDS.find(b => b.id === breedId);
@@ -5683,9 +5902,14 @@
                 alert('Cần ít nhất 2 bé mèo đạt Cấp 3 (Trưởng Thành) để ghép đôi sinh mèo con!');
                 return;
             }
+            const availableBreeds = CAT_BREEDS.filter(b => !state.cats.some(c => c.breedId === b.id));
+            if (availableBreeds.length === 0) {
+                alert('🎉 Căn phòng đã hội tụ đủ tất cả các giống mèo (tối đa mỗi loài 1 con) rồi sen ơi! 💕');
+                return;
+            }
             if (state.coins < 100) { alert('Cần 100 xu để ghép đôi!'); return; }
             state.coins -= 100;
-            const randomBreed = CAT_BREEDS[Math.floor(Math.random() * CAT_BREEDS.length)];
+            const randomBreed = availableBreeds[Math.floor(Math.random() * availableBreeds.length)];
             const babyCat = {
                 id: 'baby_' + Date.now(),
                 name: 'Boss Con',
@@ -5706,7 +5930,7 @@
             updateUI();
             closeModal('couple-modal');
             fireConfetti();
-            alert('🎉 Chúc mừng Lina & Qwan đã chào đón thêm một bé mèo con siêu đáng yêu!');
+            alert(`🎉 Chúc mừng Lina & Qwan đã chào đón thêm một bé mèo con giống ${randomBreed.name}!`);
             pushStateToCloud();
         }
 
