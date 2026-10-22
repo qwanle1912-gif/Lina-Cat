@@ -357,9 +357,15 @@
                 <div>
                     <div class="flex justify-between items-center text-xs mb-1">
                         <span>✨ Sạch sẽ</span>
-                        <span id="stat-clean-val" class="text-emerald-600 font-black">100%</span>
+                        <span id="stat-clean-val" class="text-amber-600 font-black">10%</span>
                     </div>
-                    <div class="stat-bar-track"><div id="stat-clean-bar" class="stat-bar-fill" style="width: 100%"></div></div>
+                    <div class="stat-bar-track"><div id="stat-clean-bar" class="stat-bar-fill bg-amber-500" style="width: 10%"></div></div>
+                    <div class="mt-2 flex items-center justify-between bg-white/80 p-1.5 rounded-xl border border-slate-200 shadow-sm">
+                        <span class="text-[11px] font-black text-slate-700 flex items-center gap-1">🤖 Robot hút bụi:</span>
+                        <button id="btn-toggle-robot" onclick="toggleVacuumRobot()" class="cozy-btn px-2.5 py-0.5 text-[10.5px] font-black bg-emerald-500 text-white shadow-sm hover:scale-105 transition-all">
+                            ▶ BẬT ROBOT
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -486,11 +492,12 @@
                     <button id="btn-cmd-wheel" onclick="commandCatEmote('wheel')" class="cozy-btn py-1 bg-cyan-50 hover:bg-cyan-100 transition-all">🏃 Bánh xe</button>
                     <button id="btn-cmd-tree" onclick="commandCatEmote('tree')" class="cozy-btn py-1 bg-amber-50 hover:bg-amber-100 transition-all">🌳 Leo tháp</button>
                     <button id="btn-cmd-box" onclick="commandCatEmote('box')" class="cozy-btn py-1 bg-orange-50 hover:bg-orange-100 transition-all">📦 Chui hộp</button>
+                    <button id="btn-cmd-robot" onclick="commandCatEmote('robot')" class="cozy-btn py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 transition-all">🤖 Cưỡi robot</button>
                     <button id="btn-cmd-flip" onclick="commandCatEmote('flip')" class="cozy-btn py-1 bg-pink-50 hover:bg-pink-100 transition-all">🤸 Nhào lộn</button>
-                    <button id="btn-cmd-come" onclick="commandCatEmote('come')" class="cozy-btn py-1 bg-emerald-50 hover:bg-emerald-100 transition-all">🐾 Lại đây</button>
                 </div>
-                <div class="mt-1">
-                    <button id="btn-cmd-drink" onclick="commandCatEmote('drink')" class="w-full cozy-btn py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-black flex items-center justify-center gap-1 transition-all">💧 Cho uống nước sạch</button>
+                <div class="mt-1 grid grid-cols-2 gap-1 text-[11px] font-black">
+                    <button id="btn-cmd-come" onclick="commandCatEmote('come')" class="cozy-btn py-1 bg-emerald-50 hover:bg-emerald-100 transition-all">🐾 Lại đây</button>
+                    <button id="btn-cmd-drink" onclick="commandCatEmote('drink')" class="cozy-btn py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 flex items-center justify-center gap-1 transition-all">💧 Cho uống nước</button>
                 </div>
             </div>
         </div>
@@ -1228,6 +1235,25 @@
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now + idx * 0.08); osc.stop(now + idx * 0.08 + 0.35);
             });
+        }
+
+        function playRobotBeep(isOn = true) {
+            initAudio(); if (!audioCtx || (state.settings && state.settings.muted)) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine';
+            if (isOn) {
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.09);
+                osc.frequency.setValueAtTime(783.99, now + 0.18);
+            } else {
+                osc.frequency.setValueAtTime(659.25, now);
+                osc.frequency.setValueAtTime(440.00, now + 0.11);
+            }
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + (isOn ? 0.32 : 0.25));
+            osc.connect(gain); gain.connect(sfxGain);
+            osc.start(now); osc.stop(now + (isOn ? 0.33 : 0.26));
         }
 
         function playWaterPourSound() {
@@ -1989,7 +2015,7 @@
             hunger: 70,
             water: 85,
             happiness: 85,
-            cleanliness: 100,
+            cleanliness: 10,
             foodStock: 10,
             foodBowlPercent: 100,
             waterBowlPercent: 100,
@@ -2037,6 +2063,8 @@
                 try {
                     const parsed = JSON.parse(saved);
                     state = Object.assign(state, parsed);
+                    // Sạch sẽ ban đầu chỉ có 10% như yêu cầu
+                    state.cleanliness = 10;
                     if (state.waterBowlPercent === undefined) state.waterBowlPercent = 100;
                     if (state.lampMode === undefined) state.lampMode = 'on';
                     if (!state.lastCommandTimes) state.lastCommandTimes = {};
@@ -2049,6 +2077,9 @@
                             if (c.happiness === undefined || c.happiness === null) c.happiness = 95;
                             if (c.water === undefined || c.water === null) c.water = 85;
                             if (!c.favToy) c.favToy = toys[Math.floor(Math.random() * toys.length)];
+                            // Giảm thời gian đói đi 70% so với trước: ~90s - 126s giảm 13% đói
+                            const cycleSeconds = (300 + Math.random() * 120) * 0.3;
+                            c.hungerRate = 13 / cycleSeconds;
                         });
                     }
                 } catch (e) {
@@ -2955,12 +2986,302 @@
             return g;
         }
 
+        /********************************************************************
+         * 6B. CUTE CAT-THEMED VACUUM ROBOT (3D MODEL, COLLISION & CLEANING)
+         ********************************************************************/
+        const vacuumRobot = {
+            x: 0.8,
+            z: 0.2,
+            y: FLOOR_Y,
+            angle: 0.6,
+            targetAngle: 0.6,
+            speed: 0.65,
+            radius: 0.29,
+            isOn: false,
+            mesh: null,
+            brushes: [],
+            ledMat: null,
+            eyeMat: null,
+            turnTimer: 0,
+            turnSpeed: 4.2,
+            dustTimer: 0
+        };
+
+        function buildVacuumRobotMesh() {
+            const g = new THREE.Group();
+            const whiteGloss = catMat(0xffffff, 0.2);
+            const darkRim = catMat(0x1e293b, 0.35);
+            const pinkMat = catMat(0xf472b6, 0.45);
+            const redLidar = catMat(0xef4444, 0.3);
+            const silverMat = catMat(0xe2e8f0, 0.2);
+
+            const ledPowerMat = new THREE.MeshStandardMaterial({
+                color: sc(0xf59e0b),
+                emissive: sc(0x78350f),
+                emissiveIntensity: 0.7,
+                roughness: 0.3
+            });
+            vacuumRobot.ledMat = ledPowerMat;
+
+            const eyeMat = new THREE.MeshStandardMaterial({
+                color: sc(0x64748b),
+                emissive: sc(0x1e293b),
+                emissiveIntensity: 0.3,
+                roughness: 0.2
+            });
+            vacuumRobot.eyeMat = eyeMat;
+
+            // 1. Main round body disc (radius 0.28, height 0.075)
+            const bodyGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.075, 32);
+            const bodyMesh = addMesh(g, bodyGeo, whiteGloss, 0, 0.045, 0);
+            bodyMesh.castShadow = true; bodyMesh.receiveShadow = true;
+
+            // Bumper rim
+            const bumperGeo = new THREE.CylinderGeometry(0.284, 0.284, 0.025, 32);
+            addMesh(g, bumperGeo, darkRim, 0, 0.025, 0);
+
+            // Front obstacle sensor window band
+            const sensorGeo = new THREE.CylinderGeometry(0.282, 0.282, 0.032, 24, 1, false, -Math.PI * 0.4, Math.PI * 0.8);
+            addMesh(g, sensorGeo, darkRim, 0, 0.052, 0);
+
+            // Cute LED Eyes on front bumper
+            const eyeGeo = new THREE.SphereGeometry(0.018, 12, 12);
+            addMesh(g, eyeGeo, eyeMat, -0.09, 0.052, 0.265);
+            addMesh(g, eyeGeo, eyeMat, 0.09, 0.052, 0.265);
+
+            // Cute cat nose on front bumper
+            const noseGeo = new THREE.SphereGeometry(0.012, 10, 10);
+            addMesh(g, noseGeo, pinkMat, 0, 0.042, 0.278);
+
+            // 2. Cute Cat Ears on top of vacuum robot!
+            const earGeo = new THREE.ConeGeometry(0.048, 0.075, 4);
+            const earPinkGeo = new THREE.ConeGeometry(0.032, 0.055, 4);
+
+            // Left ear
+            const leftEar = addMesh(g, earGeo, whiteGloss, -0.13, 0.11, 0.08);
+            leftEar.rotation.x = -0.2; leftEar.rotation.z = 0.25;
+            leftEar.castShadow = true;
+            const leftEarInner = addMesh(g, earPinkGeo, pinkMat, -0.13, 0.11, 0.088);
+            leftEarInner.rotation.x = -0.2; leftEarInner.rotation.z = 0.25;
+
+            // Right ear
+            const rightEar = addMesh(g, earGeo, whiteGloss, 0.13, 0.11, 0.08);
+            rightEar.rotation.x = -0.2; rightEar.rotation.z = -0.25;
+            rightEar.castShadow = true;
+            const rightEarInner = addMesh(g, earPinkGeo, pinkMat, 0.13, 0.11, 0.088);
+            rightEarInner.rotation.x = -0.2; rightEarInner.rotation.z = -0.25;
+
+            // 3. Lidar Laser Turret on top (Signature Roborock / Xiaomi look as in user's photo)
+            const turretBase = addMesh(g, new THREE.CylinderGeometry(0.072, 0.076, 0.035, 24), whiteGloss, 0, 0.095, -0.05);
+            turretBase.castShadow = true;
+            const turretCap = addMesh(g, new THREE.CylinderGeometry(0.062, 0.062, 0.02, 24), redLidar, 0, 0.115, -0.05);
+            turretCap.castShadow = true;
+            const turretRim = addMesh(g, new THREE.TorusGeometry(0.063, 0.005, 8, 24), silverMat, 0, 0.125, -0.05);
+            turretRim.rotation.x = Math.PI / 2;
+
+            // 4. Power Button / Paw symbol on top
+            addMesh(g, new THREE.CylinderGeometry(0.026, 0.026, 0.012, 16), ledPowerMat, 0, 0.086, 0.13);
+            const btnRing = addMesh(g, new THREE.RingGeometry(0.028, 0.034, 16), darkRim, 0, 0.088, 0.13);
+            btnRing.rotation.x = -Math.PI / 2;
+
+            // 5. Dual Spinning Side Brushes underneath front edges
+            vacuumRobot.brushes = [];
+            [-0.19, 0.19].forEach((brushX) => {
+                const brushGroup = new THREE.Group();
+                brushGroup.position.set(brushX, 0.008, 0.16);
+                addMesh(brushGroup, new THREE.CylinderGeometry(0.014, 0.014, 0.01, 12), darkRim, 0, 0, 0);
+                for (let a = 0; a < 3; a++) {
+                    const ang = (a * Math.PI * 2) / 3;
+                    const br = addMesh(brushGroup, new THREE.BoxGeometry(0.08, 0.005, 0.012), silverMat, Math.cos(ang) * 0.04, 0, Math.sin(ang) * 0.04);
+                    br.rotation.y = -ang;
+                }
+                g.add(brushGroup);
+                vacuumRobot.brushes.push(brushGroup);
+            });
+
+            // Mark for clicking
+            g.traverse(child => {
+                child.userData = { isVacuumRobot: true };
+            });
+            g.userData = { isVacuumRobot: true };
+
+            return g;
+        }
+
+        function initVacuumRobot() {
+            if (vacuumRobot.mesh && vacuumRobot.mesh.parent) {
+                vacuumRobot.mesh.parent.remove(vacuumRobot.mesh);
+            }
+            vacuumRobot.mesh = buildVacuumRobotMesh();
+            vacuumRobot.mesh.position.set(vacuumRobot.x, FLOOR_Y, vacuumRobot.z);
+            vacuumRobot.mesh.rotation.y = -vacuumRobot.angle + Math.PI / 2;
+            roomGroup.add(vacuumRobot.mesh);
+        }
+
+        function toggleVacuumRobot() {
+            vacuumRobot.isOn = !vacuumRobot.isOn;
+            if (vacuumRobot.ledMat) {
+                vacuumRobot.ledMat.color.setHex(vacuumRobot.isOn ? 0x10b981 : 0xf59e0b);
+                vacuumRobot.ledMat.emissive.setHex(vacuumRobot.isOn ? 0x10b981 : 0x78350f);
+            }
+            if (vacuumRobot.eyeMat) {
+                vacuumRobot.eyeMat.color.setHex(vacuumRobot.isOn ? 0x22d3ee : 0x64748b);
+                vacuumRobot.eyeMat.emissive.setHex(vacuumRobot.isOn ? 0x06b6d4 : 0x1e293b);
+                vacuumRobot.eyeMat.emissiveIntensity = vacuumRobot.isOn ? 0.9 : 0.3;
+            }
+            playRobotBeep(vacuumRobot.isOn);
+            if (vacuumRobot.isOn) {
+                showFloatingNotification('🤖 Robot hút bụi mèo đã BẬT! Đang dọn dẹp hút sạch bụi bẩn phòng...', '#10b981', '✨');
+            } else {
+                showFloatingNotification('⏹️ Đã tắt robot hút bụi mèo!', '#f59e0b', '🤖');
+            }
+            updateUI();
+        }
+
+        function updateVacuumRobot(dt) {
+            if (!vacuumRobot.mesh) return;
+            const effDt = dt * (state.gameSpeed === 0 ? 0 : (state.gameSpeed === 3 ? 2.2 : 1.0));
+            if (effDt <= 0) return;
+
+            // When OFF: stays still, brushes don't spin
+            if (!vacuumRobot.isOn) {
+                const ridingCat = catActors.find(a => a.aiState === 'riding_robot');
+                if (ridingCat) {
+                    ridingCat.mesh.position.set(vacuumRobot.x, FLOOR_Y + 0.15, vacuumRobot.z);
+                    ridingCat.mesh.rotation.y = vacuumRobot.mesh.rotation.y;
+                }
+                return;
+            }
+
+            // Spin side brushes when ON
+            if (vacuumRobot.brushes.length >= 2) {
+                vacuumRobot.brushes[0].rotation.y += effDt * 16;
+                vacuumRobot.brushes[1].rotation.y -= effDt * 16;
+            }
+
+            // Turning state (after a collision bump)
+            if (vacuumRobot.turnTimer > 0) {
+                vacuumRobot.turnTimer -= effDt;
+                let diff = vacuumRobot.targetAngle - vacuumRobot.angle;
+                diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                vacuumRobot.angle += Math.sign(diff) * Math.min(Math.abs(diff), vacuumRobot.turnSpeed * effDt);
+                vacuumRobot.mesh.rotation.y = -vacuumRobot.angle + Math.PI / 2;
+                return;
+            }
+
+            // Advance forward
+            const step = vacuumRobot.speed * effDt;
+            const testX = vacuumRobot.x + Math.cos(vacuumRobot.angle) * step;
+            const testZ = vacuumRobot.z + Math.sin(vacuumRobot.angle) * step;
+
+            let bumped = false;
+
+            // 1. Strict Room Bounds check (inside walls, never clip out)
+            const minX = -3.40;
+            const maxX = 3.40;
+            const minZ = -1.65;
+            const maxZ = 1.35;
+
+            if (testX < minX || testX > maxX || testZ < minZ || testZ > maxZ) {
+                bumped = true;
+            }
+
+            // 2. Obstacles check (decor / furniture)
+            if (!bumped) {
+                const obstacleRadii = {
+                    food_station: 0.65,
+                    litter_box: 0.75,
+                    cat_tree: 0.85,
+                    cat_wheel: 0.75,
+                    cardboard_box: 0.60,
+                    catnip_pot: 0.45,
+                    yarn_ball: 0.35,
+                    donut_bed: 0.65,
+                    scratching_post: 0.50,
+                    cat_tunnel: 0.65,
+                    sakura_left: 0.60,
+                    sakura_right: 0.60,
+                    wood_arch: 0.50,
+                    cozy_bed: 0.65
+                };
+
+                for (const decId in obstacleRadii) {
+                    if (state.activeDecor && state.activeDecor.includes(decId)) {
+                        const pos = state.decorPositions[decId] || DEFAULT_DECOR_POSITIONS[decId];
+                        if (pos) {
+                            const d = Math.hypot(testX - pos.x, testZ - pos.z);
+                            if (d < obstacleRadii[decId] + vacuumRobot.radius) {
+                                bumped = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Collision with cats on floor (NOT riding the robot!)
+            if (!bumped) {
+                for (const actor of catActors) {
+                    if (actor.aiState === 'riding_robot') continue;
+                    if (actor.mesh.position.y > FLOOR_Y + 0.3) continue; // high up on cat tree
+
+                    const dCat = Math.hypot(testX - actor.mesh.position.x, testZ - actor.mesh.position.z);
+                    if (dCat < 0.45 + vacuumRobot.radius) {
+                        bumped = true;
+                        if (!actor._lastBumpReact || Date.now() - actor._lastBumpReact > 4000) {
+                            actor._lastBumpReact = Date.now();
+                            if (typeof playCatVoice === 'function') playCatVoice(actor, 'surprise');
+                            showFloatingNotification(`🐾 Robot chạm nhẹ chân ${actor.data.name}! Đang tự lùi đổi hướng 🤖`, '#f59e0b', '🤖');
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (bumped) {
+                // Back up slightly
+                vacuumRobot.x -= Math.cos(vacuumRobot.angle) * 0.05;
+                vacuumRobot.z -= Math.sin(vacuumRobot.angle) * 0.05;
+                vacuumRobot.x = Math.max(minX, Math.min(maxX, vacuumRobot.x));
+                vacuumRobot.z = Math.max(minZ, Math.min(maxZ, vacuumRobot.z));
+
+                // Bumper bounce: Turn 120° - 240° away
+                const bounce = Math.PI + (Math.random() - 0.5) * 1.5;
+                vacuumRobot.targetAngle = (vacuumRobot.angle + bounce) % (Math.PI * 2);
+                vacuumRobot.turnTimer = 0.35 + Math.random() * 0.3;
+            } else {
+                vacuumRobot.x = testX;
+                vacuumRobot.z = testZ;
+                vacuumRobot.mesh.position.set(vacuumRobot.x, FLOOR_Y, vacuumRobot.z);
+                vacuumRobot.mesh.rotation.y = -vacuumRobot.angle + Math.PI / 2;
+
+                // Clean floor progressively up to 100%
+                if (state.cleanliness < 100) {
+                    state.cleanliness = Math.min(100, (state.cleanliness || 10) + effDt * 0.45);
+                    const cleanBar = document.getElementById('stat-clean-bar');
+                    const cleanVal = document.getElementById('stat-clean-val');
+                    if (cleanBar) cleanBar.style.width = Math.round(state.cleanliness) + '%';
+                    if (cleanVal) cleanVal.textContent = Math.round(state.cleanliness) + '%';
+                }
+            }
+
+            // Synchronize cat riding on top of robot
+            const ridingCat = catActors.find(a => a.aiState === 'riding_robot');
+            if (ridingCat) {
+                ridingCat.mesh.position.set(vacuumRobot.x, FLOOR_Y + 0.15, vacuumRobot.z);
+                ridingCat.mesh.rotation.y = vacuumRobot.mesh.rotation.y;
+            }
+        }
+
         function rebuildRoomDecorAndCats() {
             while (roomGroup.children.length > 2) {
                 roomGroup.remove(roomGroup.children[2]);
             }
             catActors = [];
             decorMeshes = {};
+
+            // Initialize cute vacuum robot in room
+            initVacuumRobot();
 
             state.activeDecor.forEach(decorId => {
                 const mesh = createDecorMesh(decorId);
@@ -3304,9 +3625,10 @@
                 // 3. RUNNING IN WHEEL OR WALKING / SPRINTING
                 const isRunningWheel = (a.aiState === 'running_wheel');
                 const isPotty = (a.aiState === 'using_litter');
+                const isRidingRobot = (a.aiState === 'riding_robot');
                 const mv = !!a.moving || isRunningWheel;
 
-                const poseKey = a.aiState === 'eating' ? 'eating' : (isPotty ? 'sit' : (a.aiState === 'loaf' ? 'loaf' : (mv ? 'stand' : (CAT_POSES[a.aiState] ? a.aiState : 'stand'))));
+                const poseKey = a.aiState === 'eating' ? 'eating' : ((isPotty || isRidingRobot) ? 'sit' : (a.aiState === 'loaf' ? 'loaf' : (mv ? 'stand' : (CAT_POSES[a.aiState] ? a.aiState : 'stand'))));
                 const P = CAT_POSES[poseKey] || CAT_POSES.stand;
                 if (!a.pose) a.pose = Object.assign({}, CAT_POSES.stand);
                 const k = Math.min(1, dt * 6.0);
@@ -3319,12 +3641,15 @@
                 const isEating = a.aiState === 'eating';
                 const isDrinking = (a.aiState === 'drinking');
 
-                // Wheel Placement & Drum Spin
+                // Wheel & Robot Placement & Drum Spin
                 if (isRunningWheel) {
                     const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
                     a.mesh.position.set(wheelPos.x, FLOOR_Y + 0.22, wheelPos.z + 0.05);
                     a.mesh.rotation.y = Math.PI / 2; // running in profile inside horizontal wheel
                     if (catWheelDrum) catWheelDrum.rotation.z += dt * 5.5;
+                } else if (isRidingRobot) {
+                    a.mesh.position.set(vacuumRobot.x, FLOOR_Y + 0.15, vacuumRobot.z);
+                    if (vacuumRobot.mesh) a.mesh.rotation.y = vacuumRobot.mesh.rotation.y;
                 } else if (a.aiState !== 'climbing' && !a.jumpData && !a.flipData) {
                     a.mesh.position.y = FLOOR_Y + 0.03;
                 }
@@ -3404,6 +3729,115 @@
                     return;
                 }
 
+                // 1B. APPROACHING ACTIVITIES ON FOOT (NO TELEPORTATION: CAT WALKS SMOOTHLY TO OBJECT FIRST)
+                if (actor.aiState === 'going_to_tree') {
+                    const targetX = treePos.x + 0.45;
+                    const targetZ = treePos.z + 0.35;
+                    const dx = targetX - actor.mesh.position.x;
+                    const dz = targetZ - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.38) {
+                        actor.moving = true;
+                        actor.mesh.position.x += (dx / dist) * 0.75 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.75 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        actor.moving = false;
+                        actor.aiState = 'climbing';
+                        actor.climbStep = 1;
+                        actor.climbTimer = 0;
+                    }
+                    return;
+                }
+
+                if (actor.aiState === 'going_to_wheel') {
+                    const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
+                    const targetX = wheelPos.x;
+                    const targetZ = wheelPos.z + 0.45;
+                    const dx = targetX - actor.mesh.position.x;
+                    const dz = targetZ - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.38) {
+                        actor.moving = true;
+                        actor.mesh.position.x += (dx / dist) * 0.75 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.75 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        actor.moving = false;
+                        triggerCatJump(actor, new THREE.Vector3(wheelPos.x, FLOOR_Y + 0.22, wheelPos.z + 0.05), 0.3, 0.45, 'running_wheel', 8.0);
+                    }
+                    return;
+                }
+
+                if (actor.aiState === 'going_to_box') {
+                    const boxPos = state.decorPositions['cardboard_box'] || DEFAULT_DECOR_POSITIONS.cardboard_box;
+                    const targetX = boxPos.x;
+                    const targetZ = boxPos.z + 0.38;
+                    const dx = targetX - actor.mesh.position.x;
+                    const dz = targetZ - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.35) {
+                        actor.moving = true;
+                        actor.mesh.position.x += (dx / dist) * 0.75 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.75 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        actor.moving = false;
+                        triggerCatJump(actor, new THREE.Vector3(boxPos.x, FLOOR_Y + 0.12, boxPos.z), 0.3, 0.45, 'loaf', 8.0);
+                    }
+                    return;
+                }
+
+                if (actor.aiState === 'going_to_donut') {
+                    const donutPos = state.decorPositions['donut_bed'] || DEFAULT_DECOR_POSITIONS.donut_bed;
+                    const targetX = donutPos.x;
+                    const targetZ = donutPos.z + 0.35;
+                    const dx = targetX - actor.mesh.position.x;
+                    const dz = targetZ - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.35) {
+                        actor.moving = true;
+                        actor.mesh.position.x += (dx / dist) * 0.75 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.75 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        actor.moving = false;
+                        triggerCatJump(actor, new THREE.Vector3(donutPos.x, FLOOR_Y + 0.08, donutPos.z), 0.25, 0.4, 'loaf', 10.0);
+                    }
+                    return;
+                }
+
+                if (actor.aiState === 'going_to_robot') {
+                    const dx = vacuumRobot.x - actor.mesh.position.x;
+                    const dz = vacuumRobot.z - actor.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 0.40) {
+                        actor.moving = true;
+                        actor.mesh.position.x += (dx / dist) * 0.8 * effDt;
+                        actor.mesh.position.z += (dz / dist) * 0.8 * effDt;
+                        actor.mesh.rotation.y = Math.atan2(dx, dz);
+                    } else {
+                        actor.moving = false;
+                        triggerCatJump(actor, new THREE.Vector3(vacuumRobot.x, FLOOR_Y + 0.15, vacuumRobot.z), 0.3, 0.4, 'riding_robot', 25.0);
+                        showFloatingNotification(`✨ ${actor.data.name} đã nhảy lên ngồi trên robot hút bụi cực ngầu! 🤖🐾`, '#ec4899', '🎉');
+                    }
+                    return;
+                }
+
+                if (actor.aiState === 'riding_robot') {
+                    actor.moving = false;
+                    actor.mesh.position.set(vacuumRobot.x, FLOOR_Y + 0.15, vacuumRobot.z);
+                    actor.mesh.rotation.y = vacuumRobot.mesh ? vacuumRobot.mesh.rotation.y : actor.mesh.rotation.y;
+                    actor.stateTimer -= effDt;
+                    if (actor.stateTimer <= 0) {
+                        const offX = Math.max(-3.2, Math.min(3.2, vacuumRobot.x + (Math.random() < 0.5 ? 0.45 : -0.45)));
+                        const offZ = Math.max(-1.5, Math.min(1.2, vacuumRobot.z + 0.3));
+                        triggerCatJump(actor, new THREE.Vector3(offX, FLOOR_Y + 0.03, offZ), 0.3, 0.4, 'sit', 3.5);
+                        showFloatingNotification(`✨ ${actor.data.name} đã nhảy xuống khỏi robot hút bụi sau chuyến dạo chơi! 🐾`, '#10b981', '🐱');
+                    }
+                    return;
+                }
+
                 // 2. REALISTIC STEP-BY-STEP CAT TREE CLIMBING (JUMPING SLOWLY OVER ~5s, STOPPING AT EACH TIER)
                 if (actor.aiState === 'climbing' && !actor.jumpData) {
                     actor.climbTimer = (actor.climbTimer || 0) - effDt;
@@ -3461,7 +3895,7 @@
                     actor.aiState !== 'jumping' && actor.aiState !== 'running_wheel' && 
                     actor.aiState !== 'climbing') {
                     actor.aiState = 'going_to_litter';
-                    // Đặt lại ngay hẹn giờ 30 - 50 phút (1800 - 3000 giây)
+                    // Đặt lại hẹn giờ
                     actor.pottyTimer = (1800 + Math.random() * 1200) * actor.pottyFactor;
                 }
 
@@ -3492,12 +3926,13 @@
                         }
                     }
                     if (actor.stateTimer <= 0) {
-                        state.litterCleanliness = Math.max(15, (state.litterCleanliness || 100) - 35);
-                        if (litterBoxDirtGroup) litterBoxDirtGroup.visible = true;
+                        // Làm dơ từ 7 - 15% cát
+                        const dirtPct = Math.round(7 + Math.random() * 8);
+                        state.litterCleanliness = Math.max(0, (state.litterCleanliness || 100) - dirtPct);
+                        if (litterBoxDirtGroup) litterBoxDirtGroup.visible = (state.litterCleanliness < 90);
                         triggerCatJump(actor, new THREE.Vector3(litterPos.x, FLOOR_Y + 0.03, litterPos.z + 0.65), 0.35, 0.5, 'sit', 3.5);
-                        // Hẹn giờ chu kỳ đi vệ sinh kế tiếp: 30 - 50 phút
                         actor.pottyTimer = (1800 + Math.random() * 1200) * actor.pottyFactor;
-                        showFloatingNotification(`💩 ${actor.data.name} đã đi vệ sinh đúng chậu cát xong! Hãy bấm Dọn Cát nhé 🧹`, '#06b6d4', '✨');
+                        showFloatingNotification(`💩 ${actor.data.name} đã đi vệ sinh đúng chậu cát (-${dirtPct}% độ sạch cát)! Hãy bấm Dọn Cát nhé 🧹`, '#06b6d4', '✨');
                         updateUI();
                         pushStateToCloud();
                     }
@@ -3516,9 +3951,9 @@
                         actor.mesh.rotation.y = Math.atan2(dx, dz);
                     } else {
                         actor.moving = false;
+                        actor.stateTimer -= effDt;
                         actor.mesh.rotation.y = Math.atan2(bowlPos.x - actor.mesh.position.x, bowlPos.z - actor.mesh.position.z);
                         if (state.foodBowlPercent > 0) {
-                            // Sức chứa khay đủ 3 bé ăn no: tốc độ vơi chỉ 2.2%/s, tăng 7.5% no bụng/s
                             state.foodBowlPercent = Math.max(0, state.foodBowlPercent - effDt * 2.2);
                             updateFoodBowlVisual();
                             const cData = state.cats.find(c => c.id === actor.id);
@@ -3533,6 +3968,9 @@
                     if (actor.stateTimer <= 0 || (state.foodBowlPercent || 0) <= 0) {
                         actor.aiState = 'sit';
                         actor.stateTimer = 4;
+                        // Sau khi ăn xong khoảng 5-10p thì mèo sẽ đi vệ sinh
+                        actor.pottyTimer = 300 + Math.random() * 300;
+                        showFloatingNotification(`😋 ${actor.data.name} đã ăn no bụng! Khoảng 5-10 phút nữa bé sẽ cần đi vệ sinh 🚽`, '#10b981', '🐱');
                     }
                     return;
                 }
@@ -3632,6 +4070,7 @@
                     if (hasTree) availableToys.push('tree');
                     if (hasBox) availableToys.push('box');
                     if (hasDonut) availableToys.push('donut');
+                    if (vacuumRobot.mesh) availableToys.push('robot');
                     availableToys.push('flip'); // Nhào lộn
 
                     if (availableToys.length > 0) {
@@ -3656,11 +4095,18 @@
                             selectedCatId = actor.id;
                             commandCatEmote('box', false, true);
                             return;
+                        } else if (pick === 'robot') {
+                            selectedCatId = actor.id;
+                            commandCatEmote('robot', false, true);
+                            return;
                         } else if (pick === 'donut') {
                             const donutPos = state.decorPositions['donut_bed'] || DEFAULT_DECOR_POSITIONS.donut_bed;
-                            actor.mesh.position.set(donutPos.x, FLOOR_Y + 0.08, donutPos.z);
-                            actor.aiState = 'loaf';
-                            actor.stateTimer = 10 + Math.random() * 6;
+                            const distToDonut = Math.hypot(donutPos.x - actor.mesh.position.x, (donutPos.z + 0.35) - actor.mesh.position.z);
+                            if (distToDonut > 0.35) {
+                                actor.aiState = 'going_to_donut';
+                            } else {
+                                triggerCatJump(actor, new THREE.Vector3(donutPos.x, FLOOR_Y + 0.08, donutPos.z), 0.25, 0.4, 'loaf', 10.0);
+                            }
                             if (cData) {
                                 cData.happiness = Math.min(100, (cData.happiness || 80) + moodBoost);
                                 cData.love = Math.min(100, (cData.love || 80) + 1);
@@ -3739,10 +4185,9 @@
                     addCatGrowthExp(cat, expGain, 'Thời gian thực', true);
                 }
 
-                // GIẢM 13% ĐÓI MỖI 5 - 7 PHÚT (RANDOM HỆ SỐ TIÊU HÓA RIÊNG CHO TỪNG BÉ)
-                // 5 phút = 300s, 7 phút = 420s -> Giảm 13% sau 300s - 420s (tương đương 0.031% - 0.043% mỗi giây)
+                // GIẢM THỜI GIAN ĐÓI ĐI 70% SO VỚI HIỆN TẠI (CHỈ CÒN 30% THỜI GIAN, ~90s - 126s GIẢM 13% ĐÓI)
                 if (!cat.hungerRate) {
-                    const cycleSeconds = 300 + Math.random() * 120; // 5 - 7 phút
+                    const cycleSeconds = (300 + Math.random() * 120) * 0.3; // 90 - 126 giây
                     cat.hungerRate = 13 / cycleSeconds; // % giảm mỗi giây
                 }
                 cat.hunger = Math.max(5, (cat.hunger || 70) - (elapsedSeconds * cat.hungerRate));
@@ -3770,6 +4215,7 @@
             requestAnimationFrame(animateLoop);
             const dt = 0.016;
             updateCatsAI(dt);
+            updateVacuumRobot(dt);
             processRealtimeCatGrowth();
             animateCatParts(dt, performance.now() / 1000);
             animateStreetTraffic(dt);
@@ -3790,6 +4236,7 @@
             wheel: 10000,
             tree: 8000,
             box: 8000,
+            robot: 6000,
             flip: 5000,
             come: 4000,
             drink: 8000
@@ -3800,9 +4247,10 @@
             wheel: '🏃 Bánh xe',
             tree: '🌳 Leo tháp',
             box: '📦 Chui hộp',
+            robot: '🤖 Cưỡi robot',
             flip: '🤸 Nhào lộn',
             come: '🐾 Lại đây',
-            drink: '💧 Cho uống nước sạch'
+            drink: '💧 Cho uống nước'
         };
 
         function updateCommandButtonsUI() {
@@ -3929,20 +4377,41 @@
                 playMeowSound(0.9);
                 showFloatingNotification(`😴 ${actor.data.name} đã nằm lăn ra ngủ phơi bụng rừ rừ! (+${boost}% Tâm trạng 💖)`, '#6366f1', '💤');
             } else if (cmd === 'wheel') {
-                actor.aiState = 'running_wheel';
-                actor.stateTimer = 8.0; // HOẠT ĐỘNG CHẠY XE ĐỪNG QUÁ 10S (8 GIÂY)
+                const distToWheel = Math.hypot(wheelPos.x - actor.mesh.position.x, (wheelPos.z + 0.45) - actor.mesh.position.z);
+                if (distToWheel > 0.4) {
+                    actor.aiState = 'going_to_wheel';
+                } else {
+                    triggerCatJump(actor, new THREE.Vector3(wheelPos.x, FLOOR_Y + 0.22, wheelPos.z + 0.05), 0.3, 0.45, 'running_wheel', 8.0);
+                }
                 playMeowSound(1.1);
-                showFloatingNotification(`🏃 ${actor.data.name} đang chạy bánh xe tập thể dục tít mù${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#06b6d4', '✨');
+                showFloatingNotification(`🏃 ${actor.data.name} đang bước lại bánh xe để chạy tập thể dục${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#06b6d4', '✨');
             } else if (cmd === 'tree') {
-                actor.aiState = 'climbing'; actor.climbStep = 1; actor.climbTimer = 0;
+                const distToTree = Math.hypot((treePos.x + 0.45) - actor.mesh.position.x, (treePos.z + 0.35) - actor.mesh.position.z);
+                if (distToTree > 0.4) {
+                    actor.aiState = 'going_to_tree';
+                } else {
+                    actor.aiState = 'climbing'; actor.climbStep = 1; actor.climbTimer = 0;
+                }
                 playCatVoice(actor, 'greet');
-                showFloatingNotification(`🌳 ${actor.data.name} bắt đầu trèo lên tháp mèo nhiều tầng${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#8b5cf6', '🐾');
+                showFloatingNotification(`🌳 ${actor.data.name} đang bước lại tháp mèo để leo từng bậc${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#8b5cf6', '🐾');
             } else if (cmd === 'box') {
-                actor.aiState = 'loaf';
-                actor.mesh.position.set(boxPos.x, FLOOR_Y + 0.12, boxPos.z);
-                actor.stateTimer = 8;
+                const distToBox = Math.hypot(boxPos.x - actor.mesh.position.x, (boxPos.z + 0.38) - actor.mesh.position.z);
+                if (distToBox > 0.35) {
+                    actor.aiState = 'going_to_box';
+                } else {
+                    triggerCatJump(actor, new THREE.Vector3(boxPos.x, FLOOR_Y + 0.12, boxPos.z), 0.3, 0.45, 'loaf', 8.0);
+                }
                 playMeowSound(1.15);
-                showFloatingNotification(`📦 ${actor.data.name} đã chui tọt vào hộp carton ấm áp${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#f59e0b', '🐱');
+                showFloatingNotification(`📦 ${actor.data.name} đang chạy lại chui tọt vào hộp carton${isFav ? ' (món thích nhất ⭐)' : ''}! (+${boost}% Tâm trạng 💖)`, '#f59e0b', '🐱');
+            } else if (cmd === 'robot') {
+                const distToRobot = Math.hypot(vacuumRobot.x - actor.mesh.position.x, vacuumRobot.z - actor.mesh.position.z);
+                if (distToRobot > 0.4) {
+                    actor.aiState = 'going_to_robot';
+                } else {
+                    triggerCatJump(actor, new THREE.Vector3(vacuumRobot.x, FLOOR_Y + 0.15, vacuumRobot.z), 0.3, 0.4, 'riding_robot', 25.0);
+                }
+                playMeowSound(1.2);
+                showFloatingNotification(`🤖 ${actor.data.name} đang tiến lại gần để nhảy lên ngồi cưỡi robot hút bụi! (+${boost}% Tâm trạng 💖)`, '#0d9488', '🎉');
             } else if (cmd === 'flip') {
                 if (actor.flipData) return;
                 actor.aiState = 'backflipping';
@@ -4099,9 +4568,17 @@
                     toggleRoomLight();
                     return;
                 }
+                if (obj.userData && obj.userData.isVacuumRobot) {
+                    toggleVacuumRobot();
+                    return;
+                }
                 while (obj) {
                     if (obj.userData && obj.userData.isLightSwitch) {
                         toggleRoomLight();
+                        return;
+                    }
+                    if (obj.userData && obj.userData.isVacuumRobot) {
+                        toggleVacuumRobot();
                         return;
                     }
                     if (obj.userData && obj.userData.catId) {
@@ -4291,11 +4768,17 @@
                 // Re-verify safe floor position
                 resolveCatWalkablePosition(pos, actor.id);
 
-                // Check landing near interactive toys
+                // Check landing near interactive toys or robot vacuum
                 const treePos = state.decorPositions['cat_tree'] || DEFAULT_DECOR_POSITIONS.cat_tree;
                 const wheelPos = state.decorPositions['cat_wheel'] || DEFAULT_DECOR_POSITIONS.cat_wheel;
 
-                if (Math.hypot(pos.x - treePos.x, pos.z - treePos.z) < 1.1) {
+                if (Math.hypot(pos.x - vacuumRobot.x, pos.z - vacuumRobot.z) < 0.65) {
+                    actor.mesh.position.set(vacuumRobot.x, FLOOR_Y + 0.15, vacuumRobot.z);
+                    actor.aiState = 'riding_robot';
+                    actor.stateTimer = 25.0;
+                    if (typeof playCatVoice === 'function') playCatVoice(actor, 'greet');
+                    showFloatingNotification(`✨ Đã đặt bé ${actor.data.name} ngồi trên robot hút bụi cực ngầu! 🤖🐾`, '#ec4899', '🎉');
+                } else if (Math.hypot(pos.x - treePos.x, pos.z - treePos.z) < 1.1) {
                     commandCatEmote('tree', false, true);
                 } else if (Math.hypot(pos.x - wheelPos.x, pos.z - wheelPos.z) < 1.0) {
                     commandCatEmote('wheel', false, true);
@@ -4438,7 +4921,6 @@
         function executeCleanLitter() {
             closeModal('litter-modal');
             state.litterCleanliness = 100;
-            state.cleanliness = 100;
             state.stats.cleanedToday++;
             playSandSound();
 
@@ -4687,8 +5169,28 @@
             document.getElementById('stat-hunger-val').textContent = state.hunger + '%';
             document.getElementById('stat-happy-bar').style.width = state.happiness + '%';
             document.getElementById('stat-happy-val').textContent = state.happiness + '%';
-            document.getElementById('stat-clean-bar').style.width = state.cleanliness + '%';
-            document.getElementById('stat-clean-val').textContent = state.cleanliness + '%';
+            const cleanPct = Math.round(state.cleanliness || 10);
+            const cleanBar = document.getElementById('stat-clean-bar');
+            const cleanVal = document.getElementById('stat-clean-val');
+            if (cleanBar) {
+                cleanBar.style.width = cleanPct + '%';
+                cleanBar.className = cleanPct < 30 ? 'stat-bar-fill bg-amber-500' : (cleanPct < 70 ? 'stat-bar-fill bg-emerald-400' : 'stat-bar-fill bg-emerald-500');
+            }
+            if (cleanVal) {
+                cleanVal.textContent = cleanPct + '%';
+                cleanVal.className = cleanPct < 30 ? 'text-amber-600 font-black' : 'text-emerald-600 font-black';
+            }
+
+            const robotBtn = document.getElementById('btn-toggle-robot');
+            if (robotBtn) {
+                if (vacuumRobot.isOn) {
+                    robotBtn.textContent = '⏹️ TẮT ROBOT';
+                    robotBtn.className = 'cozy-btn px-2.5 py-0.5 text-[10.5px] font-black bg-rose-500 text-white shadow-sm hover:scale-105 transition-all';
+                } else {
+                    robotBtn.textContent = '▶ BẬT ROBOT';
+                    robotBtn.className = 'cozy-btn px-2.5 py-0.5 text-[10.5px] font-black bg-emerald-500 text-white shadow-sm hover:scale-105 transition-all';
+                }
+            }
             document.getElementById('badge-food').textContent = state.foodStock;
             updateFoodBowlVisual();
             updateLightSwitchUI();
